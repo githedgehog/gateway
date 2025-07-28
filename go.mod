@@ -15,7 +15,7 @@ require (
 	github.com/samber/lo v1.51.0
 	github.com/stretchr/testify v1.10.0
 	go.githedgehog.com/gateway-proto v0.11.0
-	google.golang.org/grpc v1.73.0
+	google.golang.org/grpc v1.74.2
 	k8s.io/api v0.33.3
 	k8s.io/apimachinery v0.33.3
 	k8s.io/client-go v0.33.3
@@ -83,7 +83,7 @@ require (
 	golang.org/x/time v0.12.0 // indirect
 	golang.org/x/tools v0.34.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250414145226-207652e42e2e // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250528174236-200df99c418a // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
