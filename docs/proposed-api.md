@@ -178,7 +178,7 @@ spec:
             - cidr: 10.1.1.0/24
           as: # Means static Src/Dst NAT for vpc1
             - cidr: 192.168.1.0/24
-      ingress:
+      firewall:
         - allow:
             stateless: true # it's the only options supported in the first release
             tcp:
@@ -187,7 +187,7 @@ spec:
       expose:
         - ips:
             - cidr: 10.2.1.1/32
-      ingress:
+      firewall:
         - allow:
             stateless: true
             tcp:
@@ -287,4 +287,155 @@ spec:
             - not: 10.0.0.0/8
             - not: 192.168.0.0/16
             - not: 3.2.1.0/30
+```
+
+## Simple firewall implementation
+
+VPC Firewall implies zero trust if firewall pattern is specified.
+
+```yaml
+...
+firewall:
+  - deny: 
+      stateless: true
+
+      log: # log traffic event for given pattern
+        level: debug # warning | info | error
+        message: "custom log message"
+      tcp:
+        src:
+          cidrs:
+            - 10.0.0.0/8
+            - 172.16.0.0/12
+          ports: [80, 443]
+          portRanges:
+            - start: 8000
+              end: 8999
+            - start: 3000
+              end: 3999
+        dst:
+          cidrs:
+            - 192.168.1.0/24
+          ports: [22, 23]
+          portRanges:
+            - start: 1234
+              end: 2222
+      udp:
+        src:
+          cidrs:
+            - 10.0.0.0/8
+          ports: [53, 123]
+          portRanges:
+            - start: 5000
+              end: 5999
+        dst:
+          cidrs:
+            - 8.8.8.8/32
+          ports: [53]
+      icmp:
+        src:
+          cidrs:
+            - 10.0.0.0/8
+        dst:
+          cidrs:
+            - 192.168.1.0/24
+        # TODO: ICMP type/code options
+      protocol: 47  # Raw protocol number (optional, alternative to tcp/udp/icmp)
+  - allow:
+      stateless: true
+      # All same options as deny
+```
+
+### Example 1: VPC-1 To VPC-DB access limitation (no NAT)
+
+```yaml
+apiVersion: gateway.githedgehog.com/v1alpha1
+kind: Peering
+metadata:
+  name: vpc-1-to-vpc-db
+spec:
+  peering:
+    vpc-1:
+      expose:
+        - ips:
+            - cidr: 10.1.0.0/24
+      firewall:
+        # Allow database responses back
+        - allow:
+            stateless: true
+            log:
+              level: info
+              message: "DB traffic hit"
+            tcp:
+              src:
+                ports: [3306, 5432, 1433]  # MySQL, PostgreSQL, SQL Server
+    vpc-db:
+      expose:
+        - ips:
+            - cidr: 10.2.0.0/24
+      firewall:
+        # Allow legitimate database connections
+        - allow:
+            stateless: true
+            log:
+              level: info
+              message: "Database connection"
+            tcp:
+              dst:
+                ports: [3306, 5432, 1433]
+```
+
+### Example 2: VPC-1 access to VPC with k8s API (overlapping IPs, NAT)
+
+```yaml
+apiVersion: gateway.githedgehog.com/v1alpha1
+kind: Peering
+metadata:
+  name: vpc-1-to-k8s-with-nat
+spec:
+  peering:
+    vpc-1:
+      expose:
+        - ips:
+            - cidr: 10.1.10.0/24
+          as:
+            - cidr: 192.168.10.0/24
+      firewall:
+        # Allow K8s API responses back to vpc-1 clients
+        - allow:
+            stateless: true
+            log:
+              level: debug
+              message: "Kubernetes API response to vpc-1"
+            tcp:
+              src:
+                ports: [6443]
+              dst:
+                cidrs:
+                  - 10.1.10.0/24
+        - deny:
+            stateless: true
+            log:
+              level: error
+              message: "vpc-k8s tries to access vpc-1"
+    vpc-kubernetes:
+      expose:
+        - ips:
+            - cidr: 10.1.10.0/24   # Overlap with vpc-1
+          as:
+            - cidr: 192.168.100.0/24 # NAT to different range for vpc-1 to see
+      firewall:
+        - allow:
+            stateless: true
+            log:
+              level: info
+              message: "vpc-1 Kubernetes API access"
+            tcp:
+              src:
+                cidrs:
+                  - 192.168.10.0/24   # From NAT'd vpc-1 subnet
+              dst:
+                cidrs:
+                  - 10.1.10.0/24     # To K8s control plane subnet
+                ports: [6443]      # K8s API server only
 ```
