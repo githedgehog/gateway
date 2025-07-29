@@ -14,7 +14,7 @@ require (
 	github.com/onsi/gomega v1.38.0
 	github.com/samber/lo v1.51.0
 	github.com/stretchr/testify v1.10.0
-	go.githedgehog.com/gateway-proto v0.11.0
+	go.githedgehog.com/gateway-proto v0.12.1
 	google.golang.org/grpc v1.74.2
 	k8s.io/api v0.33.3
 	k8s.io/apimachinery v0.33.3
