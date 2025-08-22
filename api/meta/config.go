@@ -18,11 +18,6 @@ type GatewayCtrlConfig struct {
 	RegistryURL          string              `json:"registryURL,omitempty"`
 	RegistryCASecret     string              `json:"registryCACertSecret,omitempty"`
 	RegistryAuthSecret   string              `json:"registryAuthSecret,omitempty"`
-	AlloyChartName       string              `json:"alloyChartName,omitempty"`
-	AlloyChartVersion    string              `json:"alloyChartVersion,omitempty"`
-	AlloyImageName       string              `json:"alloyImageName,omitempty"`
-	AlloyImageVersion    string              `json:"alloyImageVersion,omitempty"`
-	ControlProxyURL      string              `json:"controlProxyURL,omitempty"`
 }
 
 type AgentConfig struct {
