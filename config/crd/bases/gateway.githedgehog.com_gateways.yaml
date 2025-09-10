@@ -19,7 +19,19 @@ spec:
     singular: gateway
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.protocolIP
+      name: ProtoIP
+      priority: 1
+      type: string
+    - jsonPath: .spec.vtepIP
+      name: VTEPIP
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Gateway is the Schema for the gateways API.

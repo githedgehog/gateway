@@ -19,7 +19,31 @@ spec:
     singular: gatewayagent
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .status.lastAppliedTime
+      name: Applied
+      type: date
+    - jsonPath: .status.lastAppliedGen
+      name: AppliedG
+      type: integer
+    - jsonPath: .metadata.generation
+      name: CurrentG
+      type: integer
+    - jsonPath: .status.agentVersion
+      name: Version
+      type: string
+    - jsonPath: .spec.gateway.protocolIP
+      name: ProtoIP
+      priority: 1
+      type: string
+    - jsonPath: .spec.gateway.vtepIP
+      name: VTEPIP
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: GatewayAgent is the Schema for the gatewayagents API.
