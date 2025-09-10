@@ -6,7 +6,9 @@ package ctrl
 import (
 	"context"
 	"fmt"
+	"maps"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -423,7 +425,7 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 	}
 
 	{
-		ifaceFlags := lo.Flatten(lo.Map(lo.Keys(gw.Spec.Interfaces),
+		ifaceFlags := lo.Flatten(lo.Map(slices.Sorted(maps.Keys(gw.Spec.Interfaces)),
 			func(ifaceName string, _ int) []string {
 				return []string{"--interface", ifaceName}
 			}))
