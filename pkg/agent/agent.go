@@ -24,6 +24,7 @@ import (
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/util/retry"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/scheme"
@@ -153,13 +154,14 @@ func (svc *Service) watchAgent(ctx context.Context) error {
 			switch event.Type {
 			case watch.Added, watch.Modified:
 				ag := event.Object.(*gwintapi.GatewayAgent)
-				slog.Info("Handling", "name", ag.Name, "ns", ag.Namespace, "uid", ag.UID, "gen", ag.Generation, "curr", svc.curr.Generation, "res", ag.ResourceVersion)
 
 				if ag.Generation == svc.curr.Generation {
 					svc.curr = ag
 
 					continue
 				}
+
+				slog.Info("Handling update", "name", ag.Name, "ns", ag.Namespace, "uid", ag.UID, "gen", ag.Generation, "curr", svc.curr.Generation, "res", ag.ResourceVersion)
 				svc.curr = ag
 
 				if err := svc.enforceDataplaneConfig(ctx, ag); err != nil {
@@ -176,12 +178,8 @@ func (svc *Service) watchAgent(ctx context.Context) error {
 					return fmt.Errorf("handling agent: %w", err)
 				}
 
-				ag.Status.AgentVersion = version.Version
-				ag.Status.LastAppliedGen = ag.Generation
-				ag.Status.LastAppliedTime = kmetav1.Now()
-
-				if err := svc.kube.Status().Update(ctx, ag); err != nil {
-					return fmt.Errorf("updating agent status: %w", err)
+				if err := updateStatus(ctx, svc.kube, svc.curr); err != nil {
+					return fmt.Errorf("updating agent status (watch): %w", err)
 				}
 			case watch.Deleted:
 				slog.Warn("Agent object deleted, shutting down")
@@ -214,16 +212,41 @@ func (svc *Service) watchAgent(ctx context.Context) error {
 			}
 
 			if svc.curr.Status.LastAppliedGen != svc.curr.Generation || svc.curr.Status.AgentVersion != version.Version {
-				svc.curr.Status.AgentVersion = version.Version
-				svc.curr.Status.LastAppliedGen = svc.curr.Generation
-				svc.curr.Status.LastAppliedTime = kmetav1.Now()
-
-				if err := svc.kube.Status().Update(ctx, svc.curr); err != nil {
+				if err := updateStatus(ctx, svc.kube, svc.curr); err != nil {
 					return fmt.Errorf("updating agent status (enforcer): %w", err)
 				}
 			}
 		}
 	}
+}
+
+func updateStatus(ctx context.Context, kube kclient.Client, agOrig *gwintapi.GatewayAgent) error {
+	ag := agOrig.DeepCopy()
+	fetch := false
+
+	if err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		if fetch {
+			slog.Debug("Fetching latest agent to update status")
+			if err := kube.Get(ctx, kclient.ObjectKeyFromObject(ag), ag); err != nil {
+				return fmt.Errorf("fetching latest agent: %w", err)
+			}
+		}
+		fetch = true
+
+		ag.Status.AgentVersion = version.Version
+		ag.Status.LastAppliedGen = agOrig.Generation // it's important to use the original generation
+		ag.Status.LastAppliedTime = kmetav1.Now()
+
+		if err := kube.Status().Update(ctx, ag); err != nil {
+			return fmt.Errorf("updating agent status: %w", err)
+		}
+
+		return nil
+	}); err != nil {
+		return fmt.Errorf("retrying: %w", err)
+	}
+
+	return nil
 }
 
 func (svc *Service) enforceDataplaneConfig(ctx context.Context, ag *gwintapi.GatewayAgent) error {
