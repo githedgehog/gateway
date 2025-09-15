@@ -6,7 +6,7 @@ tool sigs.k8s.io/controller-tools/cmd/controller-gen
 
 require (
 	github.com/go-logr/logr v1.4.3
-	github.com/k3s-io/helm-controller v0.16.13
+	github.com/k3s-io/helm-controller v0.16.14
 	github.com/lmittmann/tint v1.1.2
 	github.com/mattn/go-isatty v0.0.20
 	github.com/onsi/ginkgo/v2 v2.25.3
