@@ -166,7 +166,10 @@ func (gw *Gateway) Validate(_ context.Context, _ kclient.Reader) error {
 			return fmt.Errorf("invalid neighbor IP %s: %w", neigh.IP, err)
 		}
 		if !neighIP.Is4() {
-			return fmt.Errorf("BGP neighbor %s IP %s must be an IPv4 address", neigh.IP, neigh.IP) //nolint:goerr113
+			return fmt.Errorf("BGP neighbor IP %s must be an IPv4 address", neigh.IP) //nolint:goerr113
+		}
+		if neighIP.IsMulticast() || neighIP.IsUnspecified() {
+			return fmt.Errorf("BGP neighbor IP %s must be a unicast IPv4 address", neigh.IP) //nolint:goerr113
 		}
 
 		if neigh.ASN == 0 {
