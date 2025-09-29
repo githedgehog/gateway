@@ -107,12 +107,29 @@ func (gw *Gateway) Validate(_ context.Context, _ kclient.Reader) error {
 	if !vtepIP.Addr().Is4() {
 		return fmt.Errorf("VTEPIP %s must be an IPv4 address", gw.Spec.VTEPIP) //nolint:goerr113
 	}
+	if vtepIP.Addr().IsMulticast() || vtepIP.Addr().IsLoopback() || vtepIP.Addr().IsUnspecified() {
+		return fmt.Errorf("VTEPIP %s must be a unicast IPv4 address", gw.Spec.VTEPIP) //nolint:goerr113
+	}
+	localhostNet, err := netip.ParsePrefix("127.0.0.0/8")
+	if err != nil {
+		return fmt.Errorf("internal error: cannot parse localhost network: %w", err)
+	}
+	if localhostNet.Contains(vtepIP.Addr()) {
+		return fmt.Errorf("VTEPIP %s must not be in the localhost range", gw.Spec.VTEPIP) //nolint:goerr113
+	}
 
 	if gw.Spec.VTEPMAC == "" {
 		return fmt.Errorf("VTEPMAC must be set") //nolint:goerr113
 	}
-	if _, err := net.ParseMAC(gw.Spec.VTEPMAC); err != nil {
+	vtepMAC, err := net.ParseMAC(gw.Spec.VTEPMAC)
+	if err != nil {
 		return fmt.Errorf("invalid VTEPMAC %s: %w", gw.Spec.VTEPMAC, err)
+	}
+	if vtepMAC.String() == "00:00:00:00:00:00" {
+		return fmt.Errorf("VTEPMAC must not be all zeros") //nolint:goerr113
+	}
+	if (vtepMAC[0] & 1) == 1 {
+		return fmt.Errorf("VTEPMAC %s must be a unicast MAC address", gw.Spec.VTEPMAC) //nolint:goerr113
 	}
 
 	if gw.Spec.ASN == 0 {
