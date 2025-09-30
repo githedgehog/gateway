@@ -8,6 +8,7 @@ import (
 	"net/netip"
 
 	"go.githedgehog.com/gateway-proto/pkg/dataplane"
+	gwapi "go.githedgehog.com/gateway/api/gateway/v1alpha1"
 	gwintapi "go.githedgehog.com/gateway/api/gwint/v1alpha1"
 )
 
@@ -153,12 +154,23 @@ func buildDataplaneConfig(ag *gwintapi.GatewayAgent) (*dataplane.GatewayConfig, 
 		peerings = append(peerings, p)
 	}
 
+	if ag.Spec.Gateway.Logs.Default == "" {
+		ag.Spec.Gateway.Logs.Default = gwapi.GatewayLogLevelInfo
+	}
+	tracing := &dataplane.TracingConfig{
+		Default:  pbLevel(ag.Spec.Gateway.Logs.Default),
+		Taglevel: map[string]dataplane.LogLevel{},
+	}
+	for tag, level := range ag.Spec.Gateway.Logs.Tags {
+		tracing.Taglevel[tag] = pbLevel(level)
+	}
+
 	return &dataplane.GatewayConfig{
 		Generation: ag.Generation,
 		Device: &dataplane.Device{
 			Driver:   dataplane.PacketDriver_KERNEL,
 			Hostname: ag.Name,
-			Loglevel: dataplane.LogLevel_DEBUG,
+			Tracing:  tracing,
 		},
 		Underlay: &dataplane.Underlay{
 			Vrfs: []*dataplane.VRF{
@@ -186,4 +198,23 @@ func buildDataplaneConfig(ag *gwintapi.GatewayAgent) (*dataplane.GatewayConfig, 
 			Peerings: peerings,
 		},
 	}, nil
+}
+
+func pbLevel(in gwapi.GatewayLogLevel) dataplane.LogLevel {
+	switch in {
+	case gwapi.GatewayLogLevelOff:
+		return dataplane.LogLevel_OFF
+	case gwapi.GatewayLogLevelError:
+		return dataplane.LogLevel_ERROR
+	case gwapi.GatewayLogLevelWarning:
+		return dataplane.LogLevel_WARNING
+	case gwapi.GatewayLogLevelInfo:
+		return dataplane.LogLevel_INFO
+	case gwapi.GatewayLogLevelDebug:
+		return dataplane.LogLevel_DEBUG
+	case gwapi.GatewayLogLevelTrace:
+		return dataplane.LogLevel_TRACE
+	}
+
+	return dataplane.LogLevel_OFF
 }

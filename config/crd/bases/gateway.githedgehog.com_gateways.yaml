@@ -78,6 +78,16 @@ spec:
                   type: object
                 description: Interfaces is a map of interface names to their configurations
                 type: object
+              logs:
+                description: Logs defines the configuration for logging levels
+                properties:
+                  default:
+                    type: string
+                  tags:
+                    additionalProperties:
+                      type: string
+                    type: object
+                type: object
               neighbors:
                 description: Neighbors is a list of BGP neighbors
                 items:

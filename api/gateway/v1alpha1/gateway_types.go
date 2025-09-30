@@ -34,6 +34,8 @@ type GatewaySpec struct {
 	Interfaces map[string]GatewayInterface `json:"interfaces,omitempty"`
 	// Neighbors is a list of BGP neighbors
 	Neighbors []GatewayBGPNeighbor `json:"neighbors,omitempty"`
+	// Logs defines the configuration for logging levels
+	Logs GatewayLogs `json:"logs,omitempty"`
 }
 
 // GatewayInterface defines the configuration for a gateway interface
@@ -52,6 +54,32 @@ type GatewayBGPNeighbor struct {
 	IP string `json:"ip,omitempty"`
 	// ASN is the remote ASN of the BGP neighbor
 	ASN uint32 `json:"asn,omitempty"`
+}
+
+// GatewayLogs defines the configuration for logging levels
+type GatewayLogs struct {
+	Default GatewayLogLevel            `json:"default,omitempty"`
+	Tags    map[string]GatewayLogLevel `json:"tags,omitempty"`
+}
+
+type GatewayLogLevel string
+
+const (
+	GatewayLogLevelOff     GatewayLogLevel = "off"
+	GatewayLogLevelError   GatewayLogLevel = "error"
+	GatewayLogLevelWarning GatewayLogLevel = "warning"
+	GatewayLogLevelInfo    GatewayLogLevel = "info"
+	GatewayLogLevelDebug   GatewayLogLevel = "debug"
+	GatewayLogLevelTrace   GatewayLogLevel = "trace"
+)
+
+var GatewayLogLevels = []GatewayLogLevel{
+	GatewayLogLevelOff,
+	GatewayLogLevelError,
+	GatewayLogLevelWarning,
+	GatewayLogLevelInfo,
+	GatewayLogLevelDebug,
+	GatewayLogLevelTrace,
 }
 
 // GatewayStatus defines the observed state of Gateway.
@@ -86,6 +114,9 @@ func init() {
 }
 
 func (gw *Gateway) Default() {
+	if gw.Spec.Logs.Default == "" {
+		gw.Spec.Logs.Default = GatewayLogLevelInfo
+	}
 }
 
 func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader) error {
