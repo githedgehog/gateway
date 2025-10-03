@@ -82,10 +82,10 @@ type PeeringStatus struct{}
 // Peering is the Schema for the peerings API.
 type Peering struct {
 	kmetav1.TypeMeta   `json:",inline"`
-	kmetav1.ObjectMeta `json:"metadata,omitempty"`
+	kmetav1.ObjectMeta `json:"metadata"`
 
-	Spec   PeeringSpec   `json:"spec,omitempty"`
-	Status PeeringStatus `json:"status,omitempty"`
+	Spec   PeeringSpec   `json:"spec"`
+	Status PeeringStatus `json:"status"`
 }
 
 // +kubebuilder:object:root=true
@@ -93,7 +93,7 @@ type Peering struct {
 // PeeringList contains a list of Peering.
 type PeeringList struct {
 	kmetav1.TypeMeta `json:",inline"`
-	kmetav1.ListMeta `json:"metadata,omitempty"`
+	kmetav1.ListMeta `json:"metadata"`
 	Items            []Peering `json:"items"`
 }
 
