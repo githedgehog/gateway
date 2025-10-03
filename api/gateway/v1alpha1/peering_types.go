@@ -9,6 +9,7 @@ import (
 	"maps"
 	"net/netip"
 	"slices"
+	"time"
 
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -22,9 +23,24 @@ type PeeringSpec struct {
 	Peering map[string]*PeeringEntry `json:"peering,omitempty"`
 }
 
+type PeeringStatefulNAT struct {
+	// Time since the last packet after which flows are removed from the connection state table
+	IdleTimeout *kmetav1.Duration `json:"idleTimeout,omitempty"`
+}
+
+type PeeringStatelessNAT struct{}
+
+type PeeringNAT struct {
+	// Use connection state tracking when performing NAT
+	Stateful *PeeringStatefulNAT `json:"stateful,omitempty"`
+	// Use connection state tracking when performing NAT, use stateful NAT if omitted
+	Stateless *PeeringStatelessNAT `json:"stateless,omitempty"`
+}
+
 type PeeringEntryExpose struct {
 	IPs []PeeringEntryIP `json:"ips,omitempty"`
 	As  []PeeringEntryAs `json:"as,omitempty"`
+	NAT *PeeringNAT      `json:"nat,omitempty"`
 }
 
 type PeeringEntry struct {
@@ -97,6 +113,38 @@ func (p *Peering) Default() {
 
 	p.Labels[ListLabelVPC(vpcs[0])] = ListLabelValue
 	p.Labels[ListLabelVPC(vpcs[1])] = ListLabelValue
+
+	for _, peering := range p.Spec.Peering {
+		// This will modify p.Spec.Peering because peering is *Peering
+		for i := range peering.Expose {
+			peering.Expose[i].Default()
+		}
+	}
+}
+
+func (e *PeeringEntryExpose) Default() {
+	if len(e.As) != 0 {
+		if e.NAT == nil {
+			e.NAT = &PeeringNAT{}
+		}
+		e.NAT.Default()
+	}
+}
+
+func (n *PeeringNAT) Default() {
+	if n.Stateful == nil && n.Stateless == nil {
+		n.Stateless = &PeeringStatelessNAT{}
+	}
+
+	if n.Stateful != nil {
+		n.Stateful.Default()
+	}
+}
+
+func (s *PeeringStatefulNAT) Default() {
+	if s.IdleTimeout == nil {
+		s.IdleTimeout = &kmetav1.Duration{Duration: 2 * time.Minute}
+	}
 }
 
 func (p *Peering) Validate(_ context.Context, _ kclient.Reader) error {
@@ -128,6 +176,20 @@ func (p *Peering) Validate(_ context.Context, _ kclient.Reader) error {
 						return fmt.Errorf("invalid Not CIDR %s in peering expose AS of VPC %s: %w", as.Not, name, err)
 					}
 				}
+			}
+
+			nonnil := 0
+			if expose.NAT.Stateless != nil {
+				// TODO(mvachhar) validate that stateless NAT has the same number of IPs in the ips and as blocks
+				nonnil++
+			}
+
+			if expose.NAT.Stateful != nil {
+				nonnil++
+			}
+
+			if nonnil > 1 {
+				return fmt.Errorf("only one of statefulNat or statelessNat can be set in peering expose of VPC %s", name) //nolint:goerr113
 			}
 		}
 	}
