@@ -63,10 +63,10 @@ type GatewayStatus struct{}
 // Gateway is the Schema for the gateways API.
 type Gateway struct {
 	kmetav1.TypeMeta   `json:",inline"`
-	kmetav1.ObjectMeta `json:"metadata,omitempty"`
+	kmetav1.ObjectMeta `json:"metadata"`
 
-	Spec   GatewaySpec   `json:"spec,omitempty"`
-	Status GatewayStatus `json:"status,omitempty"`
+	Spec   GatewaySpec   `json:"spec"`
+	Status GatewayStatus `json:"status"`
 }
 
 // +kubebuilder:object:root=true
@@ -74,7 +74,7 @@ type Gateway struct {
 // GatewayList contains a list of Gateway.
 type GatewayList struct {
 	kmetav1.TypeMeta `json:",inline"`
-	kmetav1.ListMeta `json:"metadata,omitempty"`
+	kmetav1.ListMeta `json:"metadata"`
 	Items            []Gateway `json:"items"`
 }
 

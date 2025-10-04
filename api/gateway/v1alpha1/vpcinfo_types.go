@@ -40,10 +40,10 @@ type VPCInfoStatus struct {
 // VPCInfo is the Schema for the vpcinfos API.
 type VPCInfo struct {
 	kmetav1.TypeMeta   `json:",inline"`
-	kmetav1.ObjectMeta `json:"metadata,omitempty"`
+	kmetav1.ObjectMeta `json:"metadata"`
 
-	Spec   VPCInfoSpec   `json:"spec,omitempty"`
-	Status VPCInfoStatus `json:"status,omitempty"`
+	Spec   VPCInfoSpec   `json:"spec"`
+	Status VPCInfoStatus `json:"status"`
 }
 
 // +kubebuilder:object:root=true
@@ -51,7 +51,7 @@ type VPCInfo struct {
 // VPCInfoList contains a list of VPCInfo.
 type VPCInfoList struct {
 	kmetav1.TypeMeta `json:",inline"`
-	kmetav1.ListMeta `json:"metadata,omitempty"`
+	kmetav1.ListMeta `json:"metadata"`
 	Items            []VPCInfo `json:"items"`
 }
 
