@@ -85,7 +85,7 @@ func init() {
 func (gw *Gateway) Default() {
 }
 
-func (gw *Gateway) Validate(_ context.Context, _ kclient.Reader) error {
+func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader) error {
 	protoIP, err := netip.ParsePrefix(gw.Spec.ProtocolIP)
 	if err != nil {
 		return fmt.Errorf("invalid ProtocolIP %s: %w", gw.Spec.ProtocolIP, err)
@@ -174,6 +174,38 @@ func (gw *Gateway) Validate(_ context.Context, _ kclient.Reader) error {
 
 		if neigh.ASN == 0 {
 			return fmt.Errorf("BGP neighbor %s must have an ASN", neigh.IP) //nolint:goerr113
+		}
+	}
+
+	// uniqueness checks
+	if kube != nil {
+		protocolIPs := map[netip.Addr]bool{}
+		vtepIPs := map[netip.Addr]bool{}
+		gateways := &GatewayList{}
+		if err := kube.List(ctx, gateways); err != nil {
+			return fmt.Errorf("listing gateways: %w", err)
+		}
+		// TODO: check switches too when we remove the circular dependency issue
+		for _, other := range gateways.Items {
+			if other.Name == gw.Name {
+				continue
+			}
+			if other.Spec.ProtocolIP != "" {
+				if ip, err := netip.ParsePrefix(other.Spec.ProtocolIP); err == nil {
+					protocolIPs[ip.Addr()] = true
+				}
+			}
+			if other.Spec.VTEPIP != "" {
+				if ip, err := netip.ParsePrefix(other.Spec.VTEPIP); err == nil {
+					vtepIPs[ip.Addr()] = true
+				}
+			}
+		}
+		if _, exist := protocolIPs[protoIP.Addr()]; exist {
+			return fmt.Errorf("gateway %s protocol IP %s is already in use", gw.Name, protoIP) //nolint:goerr113
+		}
+		if _, exist := vtepIPs[vtepIP.Addr()]; exist {
+			return fmt.Errorf("gateway %s VTEP IP %s is already in use", gw.Name, vtepIP) //nolint:goerr113
 		}
 	}
 
