@@ -114,6 +114,10 @@ spec:
           status:
             description: GatewayStatus defines the observed state of Gateway.
             type: object
+        required:
+        - metadata
+        - spec
+        - status
         type: object
     served: true
     storage: true

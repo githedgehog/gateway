@@ -173,6 +173,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `ips` _[PeeringEntryIP](#peeringentryip) array_ |  |  |  |
 | `as` _[PeeringEntryAs](#peeringentryas) array_ |  |  |  |
+| `nat` _[PeeringNAT](#peeringnat)_ |  |  |  |
 
 
 #### PeeringEntryIP
@@ -193,6 +194,23 @@ _Appears in:_
 | `vpcSubnet` _string_ |  |  |  |
 
 
+#### PeeringNAT
+
+
+
+
+
+
+
+_Appears in:_
+- [PeeringEntryExpose](#peeringentryexpose)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `stateful` _[PeeringStatefulNAT](#peeringstatefulnat)_ | Use connection state tracking when performing NAT |  |  |
+| `stateless` _[PeeringStatelessNAT](#peeringstatelessnat)_ | Use connection state tracking when performing NAT, use stateful NAT if omitted |  |  |
+
+
 #### PeeringSpec
 
 
@@ -208,6 +226,35 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `peering` _object (keys:string, values:[PeeringEntry](#peeringentry))_ | Peerings is a map of peering entries for each VPC participating in the peering (keyed by VPC name) |  |  |
+
+
+#### PeeringStatefulNAT
+
+
+
+
+
+
+
+_Appears in:_
+- [PeeringNAT](#peeringnat)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `idleTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#duration-v1-meta)_ | Time since the last packet after which flows are removed from the connection state table |  |  |
+
+
+#### PeeringStatelessNAT
+
+
+
+
+
+
+
+_Appears in:_
+- [PeeringNAT](#peeringnat)
+
 
 
 #### PeeringStatus
