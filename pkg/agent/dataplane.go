@@ -10,6 +10,7 @@ import (
 	"go.githedgehog.com/gateway-proto/pkg/dataplane"
 	gwapi "go.githedgehog.com/gateway/api/gateway/v1alpha1"
 	gwintapi "go.githedgehog.com/gateway/api/gwint/v1alpha1"
+	"google.golang.org/protobuf/types/known/durationpb"
 )
 
 const (
@@ -139,10 +140,41 @@ func buildDataplaneConfig(ag *gwintapi.GatewayAgent) (*dataplane.GatewayConfig, 
 					}
 				}
 
-				exposes = append(exposes, &dataplane.Expose{
+				pbExpose := &dataplane.Expose{
 					Ips: ips,
 					As:  as,
-				})
+				}
+
+				if len(as) > 0 {
+					pbExpose.Nat = &dataplane.Expose_Stateless{
+						Stateless: &dataplane.PeeringStatelessNAT{},
+					}
+
+					if expose.NAT != nil {
+						if expose.NAT.Stateful != nil && expose.NAT.Stateless != nil {
+							return nil, fmt.Errorf("invalid NAT entry in peering %s / vpc %s: both Stateful and Stateless set", peeringName, vpcName) //nolint:goerr113
+						}
+
+						if expose.NAT.Stateful != nil {
+							idleTimeout := expose.NAT.Stateful.IdleTimeout.Duration
+							if idleTimeout == 0 {
+								idleTimeout = gwapi.DefaultStatefulIdleTimeout
+							}
+
+							pbExpose.Nat = &dataplane.Expose_Stateful{
+								Stateful: &dataplane.PeeringStatefulNAT{
+									IdleTimeout: durationpb.New(idleTimeout),
+								},
+							}
+						} else if expose.NAT.Stateless != nil {
+							pbExpose.Nat = &dataplane.Expose_Stateless{
+								Stateless: &dataplane.PeeringStatelessNAT{},
+							}
+						}
+					}
+				}
+
+				exposes = append(exposes, pbExpose)
 			}
 
 			p.For = append(p.For, &dataplane.PeeringEntryFor{
