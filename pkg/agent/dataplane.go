@@ -4,6 +4,7 @@
 package agent
 
 import (
+	"errors"
 	"fmt"
 	"net/netip"
 
@@ -17,6 +18,8 @@ const (
 	IfLoopback = "lo"
 	IfVTEP     = "vtep"
 )
+
+var errInvalidDPConfig = errors.New("invalid dataplane config")
 
 func buildDataplaneConfig(ag *gwintapi.GatewayAgent) (*dataplane.GatewayConfig, error) {
 	protoIP, err := netip.ParsePrefix(ag.Spec.Gateway.ProtocolIP)
@@ -117,10 +120,10 @@ func buildDataplaneConfig(ag *gwintapi.GatewayAgent) (*dataplane.GatewayConfig, 
 								Rule: &dataplane.PeeringIPs_Cidr{Cidr: subnetCIDR},
 							})
 						} else {
-							return nil, fmt.Errorf("unknown VPC subnet %s in peering %s / vpc %s", ipEntry.VPCSubnet, peeringName, vpcName) //nolint:goerr113
+							return nil, fmt.Errorf("unknown VPC subnet %s in peering %s / vpc %s: %w", ipEntry.VPCSubnet, peeringName, vpcName, errInvalidDPConfig)
 						}
 					default:
-						return nil, fmt.Errorf("invalid IP entry in peering %s / vpc %s: %v", peeringName, vpcName, ipEntry) //nolint:goerr113
+						return nil, fmt.Errorf("invalid IP entry in peering %s / vpc %s: %v: %w", peeringName, vpcName, ipEntry, errInvalidDPConfig)
 					}
 				}
 
@@ -136,7 +139,7 @@ func buildDataplaneConfig(ag *gwintapi.GatewayAgent) (*dataplane.GatewayConfig, 
 							Rule: &dataplane.PeeringAs_Not{Not: asEntry.Not},
 						})
 					default:
-						return nil, fmt.Errorf("invalid IP entry in peering %s / vpc %s: %v", peeringName, vpcName, asEntry) //nolint:goerr113
+						return nil, fmt.Errorf("invalid IP entry in peering %s / vpc %s: %v: %w", peeringName, vpcName, asEntry, errInvalidDPConfig)
 					}
 				}
 
@@ -152,7 +155,7 @@ func buildDataplaneConfig(ag *gwintapi.GatewayAgent) (*dataplane.GatewayConfig, 
 
 					if expose.NAT != nil {
 						if expose.NAT.Stateful != nil && expose.NAT.Stateless != nil {
-							return nil, fmt.Errorf("invalid NAT entry in peering %s / vpc %s: both Stateful and Stateless set", peeringName, vpcName) //nolint:goerr113
+							return nil, fmt.Errorf("invalid NAT entry in peering %s / vpc %s: both Stateful and Stateless set: %w", peeringName, vpcName, errInvalidDPConfig)
 						}
 
 						if expose.NAT.Stateful != nil {
