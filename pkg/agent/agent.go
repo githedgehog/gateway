@@ -74,7 +74,7 @@ func (svc *Service) Run(ctx context.Context) error {
 
 	grpclog.SetLoggerV2(NewGRPCLogger(slog.Default(), slog.LevelError))
 
-	svc.dpConn, err = grpc.NewClient(svc.cfg.DataplaneAddress,
+	svc.dpConn, err = grpc.NewClient(svc.cfg.DataplaneAddress, //nolint:contextcheck,nolintlint
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 
 		// TODO consider using health check https://grpc.io/docs/guides/health-checking/
