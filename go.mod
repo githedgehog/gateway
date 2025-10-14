@@ -14,7 +14,7 @@ require (
 	github.com/samber/lo v1.52.0
 	github.com/stretchr/testify v1.11.1
 	go.githedgehog.com/gateway-proto v0.12.1
-	google.golang.org/grpc v1.75.1
+	google.golang.org/grpc v1.76.0
 	k8s.io/api v0.33.4
 	k8s.io/apimachinery v0.33.4
 	k8s.io/client-go v0.33.4
@@ -78,7 +78,7 @@ require (
 	golang.org/x/tools/go/expect v0.1.1-deprecated // indirect
 	golang.org/x/tools/go/packages/packagestest v0.1.1-deprecated // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250707201910-8d1bb00bc6a7 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250804133106-a7a43d27e69b // indirect
 	google.golang.org/protobuf v1.36.7 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
