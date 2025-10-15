@@ -179,7 +179,7 @@ jobs:
     with:
       skip: ${{ matrix.hybrid && !contains(github.event.pull_request.labels.*.name, 'ci:+hlab') || !matrix.hybrid && contains(github.event.pull_request.labels.*.name, 'ci:-vlab') }}
       fabricatorref: master
-      prebuild: "just bump gateway ${{ needs.test-build.outputs.version }} ${{ needs.test-build.outputs.ref }} && just bump dataplane main.x86_64-unknown-linux-gnu.debug.5e6ce9aa74cee11039ac90fb4c32ca468187c984 && just bump frr a8995fc346a66815983a0cf2ba4703d917a92455.debug"
+      prebuild: "just bump gateway ${{ needs.test-build.outputs.version }} ${{ needs.test-build.outputs.ref }}"
       fabricmode: ${{ matrix.fabricmode }}
       gateway: ${{ matrix.gateway }}
       includeonie: ${{ matrix.includeonie }}
