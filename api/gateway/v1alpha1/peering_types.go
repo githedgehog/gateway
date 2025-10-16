@@ -161,6 +161,9 @@ func (p *Peering) Validate(_ context.Context, _ kclient.Reader) error {
 			continue
 		}
 		for _, expose := range vpc.Expose {
+			if len(expose.IPs) == 0 {
+				return fmt.Errorf("at least one IP block must be specified in peering expose of VPC %s", name) //nolint:goerr113
+			}
 			for _, ip := range expose.IPs {
 				nonnil := 0
 				if ip.CIDR != "" {
