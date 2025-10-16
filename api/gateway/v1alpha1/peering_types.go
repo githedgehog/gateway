@@ -204,6 +204,10 @@ func (p *Peering) Validate(_ context.Context, _ kclient.Reader) error {
 				}
 			}
 
+			if (len(expose.As) == 0) != (expose.NAT == nil) {
+				return fmt.Errorf("expose.As and expose.NAT must both be set or both be empty in peering expose of VPC %s", name) //nolint:goerr113
+			}
+
 			if expose.NAT != nil {
 				nonnil := 0
 				if expose.NAT.Stateless != nil {
@@ -213,6 +217,10 @@ func (p *Peering) Validate(_ context.Context, _ kclient.Reader) error {
 
 				if expose.NAT.Stateful != nil {
 					nonnil++
+				}
+
+				if nonnil == 0 {
+					return fmt.Errorf("expose.NAT must have at least one of stateful or stateless set in peering expose of VPC %s", name) //nolint:goerr113
 				}
 
 				if nonnil > 1 {
