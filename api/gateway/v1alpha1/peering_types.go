@@ -162,23 +162,42 @@ func (p *Peering) Validate(_ context.Context, _ kclient.Reader) error {
 		}
 		for _, expose := range vpc.Expose {
 			for _, ip := range expose.IPs {
-				if _, err := netip.ParsePrefix(ip.CIDR); err != nil {
-					return fmt.Errorf("invalid CIDR %s in peering expose IPs of VPC %s: %w", ip.CIDR, name, err)
+				nonnil := 0
+				if ip.CIDR != "" {
+					if _, err := netip.ParsePrefix(ip.CIDR); err != nil {
+						return fmt.Errorf("invalid CIDR %s in peering expose IPs of VPC %s: %w", ip.CIDR, name, err)
+					}
+					nonnil++
 				}
 				if ip.Not != "" {
 					if _, err := netip.ParsePrefix(ip.Not); err != nil {
 						return fmt.Errorf("invalid Not CIDR %s in peering expose IPs of VPC %s: %w", ip.Not, name, err)
 					}
+					nonnil++
+				}
+				if ip.VPCSubnet != "" {
+					nonnil++
+				}
+				if nonnil != 1 {
+					return fmt.Errorf("exactly one of cidr, not or vpcSubnet must be set in peering expose IPs of VPC %s", name) //nolint:goerr113
 				}
 			}
 			for _, as := range expose.As {
-				if _, err := netip.ParsePrefix(as.CIDR); err != nil {
-					return fmt.Errorf("invalid CIDR %s in peering expose AS of VPC %s: %w", as.CIDR, name, err)
+				nonnil := 0
+				if as.CIDR != "" {
+					if _, err := netip.ParsePrefix(as.CIDR); err != nil {
+						return fmt.Errorf("invalid CIDR %s in peering expose AS of VPC %s: %w", as.CIDR, name, err)
+					}
+					nonnil++
 				}
 				if as.Not != "" {
 					if _, err := netip.ParsePrefix(as.Not); err != nil {
 						return fmt.Errorf("invalid Not CIDR %s in peering expose AS of VPC %s: %w", as.Not, name, err)
 					}
+					nonnil++
+				}
+				if nonnil != 1 {
+					return fmt.Errorf("exactly one of cidr or not must be set in peering expose AS of VPC %s", name) //nolint:goerr113
 				}
 			}
 

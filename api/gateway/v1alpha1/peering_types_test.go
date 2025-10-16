@@ -57,6 +57,77 @@ func TestPeeringWithVpcsNoNAT(t *testing.T) {
 	assert.Equal(t, ref, peering)
 }
 
+func TestPeeringWithMultipleItemsInIPs(t *testing.T) {
+	common := &Peering{}
+	common.Spec.Peering = map[string]*PeeringEntry{
+		"vpc1": {
+			Expose: []PeeringEntryExpose{
+				{
+					IPs: []PeeringEntryIP{
+						{CIDR: "10.0.1.0/24", Not: "10.0.1.1/32"},
+					},
+				},
+			},
+		},
+		"vpc2": {
+			Expose: []PeeringEntryExpose{
+				{
+					IPs: []PeeringEntryIP{
+						{CIDR: "10.0.2.0/24"},
+					},
+				},
+			},
+		},
+	}
+
+	ref := common.DeepCopy()
+	ref.Labels = map[string]string{
+		ListLabelVPC("vpc1"): "true",
+		ListLabelVPC("vpc2"): "true",
+	}
+
+	peering := common.DeepCopy()
+	peering.Default()
+	assert.Error(t, peering.Validate(t.Context(), nil), "multiple selection in the same PeeringEntryIP should be invalid")
+}
+
+func TestPeeringWithMultipleItemsInAs(t *testing.T) {
+	common := &Peering{}
+	common.Spec.Peering = map[string]*PeeringEntry{
+		"vpc1": {
+			Expose: []PeeringEntryExpose{
+				{
+					IPs: []PeeringEntryIP{
+						{CIDR: "10.0.1.0/24"},
+					},
+					As: []PeeringEntryAs{
+						{CIDR: "192.168.1.0/24", Not: "192.168.1.1/32"},
+					},
+				},
+			},
+		},
+		"vpc2": {
+			Expose: []PeeringEntryExpose{
+				{
+					IPs: []PeeringEntryIP{
+						{CIDR: "10.0.2.0/24"},
+					},
+				},
+			},
+		},
+	}
+
+	ref := common.DeepCopy()
+	ref.Labels = map[string]string{
+		ListLabelVPC("vpc1"): "true",
+		ListLabelVPC("vpc2"): "true",
+	}
+
+	peering := common.DeepCopy()
+	peering.Default()
+	assert.Error(t, peering.Validate(t.Context(), nil), "multiple selection in the same PeeringEntryAs should be invalid")
+}
+
 func TestPeeringWithStatelessNAT(t *testing.T) {
 	common := &Peering{}
 	common.Spec.Peering = map[string]*PeeringEntry{
