@@ -474,6 +474,12 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 									Privileged: ptr.To(true),
 									RunAsUser:  ptr.To(int64(0)),
 								},
+								Env: []corev1.EnvVar{
+									{
+										Name:  "RUST_BACKTRACE",
+										Value: "FULL",
+									},
+								},
 								VolumeMounts: []corev1.VolumeMount{
 									{
 										Name:      dataplaneRunVolumeName,
