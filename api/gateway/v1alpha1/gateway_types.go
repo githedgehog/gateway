@@ -117,6 +117,11 @@ func (gw *Gateway) Default() {
 	if gw.Spec.Logs.Default == "" {
 		gw.Spec.Logs.Default = GatewayLogLevelInfo
 	}
+	if len(gw.Spec.Logs.Tags) == 0 {
+		gw.Spec.Logs.Tags = map[string]GatewayLogLevel{
+			"all": GatewayLogLevelInfo,
+		}
+	}
 }
 
 func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader) error {
