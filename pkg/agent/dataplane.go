@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"net/netip"
+	"slices"
+	"strings"
 
 	"go.githedgehog.com/gateway-proto/pkg/dataplane"
 	gwapi "go.githedgehog.com/gateway/api/gateway/v1alpha1"
@@ -52,6 +54,9 @@ func buildDataplaneConfig(ag *gwintapi.GatewayAgent) (*dataplane.GatewayConfig, 
 			Mtu:     &iface.MTU,
 		})
 	}
+	slices.SortFunc(ifaces, func(a, b *dataplane.Interface) int {
+		return strings.Compare(a.Name, b.Name)
+	})
 
 	neighs := []*dataplane.BgpNeighbor{}
 	for _, neigh := range ag.Spec.Gateway.Neighbors {
@@ -73,6 +78,9 @@ func buildDataplaneConfig(ag *gwintapi.GatewayAgent) (*dataplane.GatewayConfig, 
 			},
 		})
 	}
+	slices.SortFunc(neighs, func(a, b *dataplane.BgpNeighbor) int {
+		return strings.Compare(a.Address, b.Address)
+	})
 
 	vpcSubnets := map[string]map[string]string{}
 	vpcs := []*dataplane.VPC{}
@@ -88,6 +96,9 @@ func buildDataplaneConfig(ag *gwintapi.GatewayAgent) (*dataplane.GatewayConfig, 
 			vpcSubnets[vpcName][subnetName] = subnet.CIDR
 		}
 	}
+	slices.SortFunc(vpcs, func(a, b *dataplane.VPC) int {
+		return strings.Compare(a.Name, b.Name)
+	})
 
 	peerings := []*dataplane.VpcPeering{}
 	for peeringName, peering := range ag.Spec.Peerings {
@@ -185,9 +196,15 @@ func buildDataplaneConfig(ag *gwintapi.GatewayAgent) (*dataplane.GatewayConfig, 
 				Expose: exposes,
 			})
 		}
+		slices.SortFunc(p.For, func(a, b *dataplane.PeeringEntryFor) int {
+			return strings.Compare(a.Vpc, b.Vpc)
+		})
 
 		peerings = append(peerings, p)
 	}
+	slices.SortFunc(peerings, func(a, b *dataplane.VpcPeering) int {
+		return strings.Compare(a.Name, b.Name)
+	})
 
 	if ag.Spec.Gateway.Logs.Default == "" {
 		ag.Spec.Gateway.Logs.Default = gwapi.GatewayLogLevelInfo

@@ -82,6 +82,13 @@ func dpb(name string, f ...func(dp *dataplane.GatewayConfig)) *dataplane.Gateway
 					Name: "default",
 					Interfaces: []*dataplane.Interface{
 						{
+							Name:    "eth0",
+							Ipaddrs: []string{"10.0.0.1"},
+							Type:    dataplane.IfType_IF_TYPE_ETHERNET,
+							Role:    dataplane.IfRole_IF_ROLE_FABRIC,
+							Mtu:     ptr(uint32(1500)),
+						},
+						{
 							Name:    "lo",
 							Ipaddrs: []string{"192.0.2.2"},
 							Type:    dataplane.IfType_IF_TYPE_LOOPBACK,
@@ -93,13 +100,6 @@ func dpb(name string, f ...func(dp *dataplane.GatewayConfig)) *dataplane.Gateway
 							Type:    dataplane.IfType_IF_TYPE_VTEP,
 							Role:    dataplane.IfRole_IF_ROLE_FABRIC,
 							Macaddr: ptr("aa:bb:cc:dd:ee:ff"),
-							Mtu:     ptr(uint32(1500)),
-						},
-						{
-							Name:    "eth0",
-							Ipaddrs: []string{"10.0.0.1"},
-							Type:    dataplane.IfType_IF_TYPE_ETHERNET,
-							Role:    dataplane.IfRole_IF_ROLE_FABRIC,
 							Mtu:     ptr(uint32(1500)),
 						},
 					},
