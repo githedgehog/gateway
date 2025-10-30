@@ -36,6 +36,8 @@ type GatewaySpec struct {
 	Neighbors []GatewayBGPNeighbor `json:"neighbors,omitempty"`
 	// Logs defines the configuration for logging levels
 	Logs GatewayLogs `json:"logs,omitempty"`
+	// Workers defines the number of worker threads to use for dataplane
+	Workers uint8 `json:"workers,omitempty"`
 }
 
 // GatewayInterface defines the configuration for a gateway interface
@@ -122,9 +124,16 @@ func (gw *Gateway) Default() {
 			"all": GatewayLogLevelInfo,
 		}
 	}
+	if gw.Spec.Workers == 0 {
+		gw.Spec.Workers = 1
+	}
 }
 
 func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader) error {
+	if gw.Spec.Workers == 0 || gw.Spec.Workers > 64 {
+		return fmt.Errorf("workers should be between 1 and 64: %w", ErrInvalidGW)
+	}
+
 	protoIP, err := netip.ParsePrefix(gw.Spec.ProtocolIP)
 	if err != nil {
 		return fmt.Errorf("invalid ProtocolIP %s: %w", gw.Spec.ProtocolIP, errors.Join(err, ErrInvalidGW))

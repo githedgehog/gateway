@@ -464,6 +464,7 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 								Image: r.cfg.DataplaneRef,
 								Args: append([]string{
 									"--driver", "kernel",
+									"--num-workers", fmt.Sprintf("%d", gw.Spec.Workers),
 									"--grpc-address", dataplaneAPIAddress,
 									"--cli-sock-path", filepath.Join(dataplaneRunMountPath, "cli.sock"),
 									"--cpi-sock-path", filepath.Join(frrRunMountPath, cpiSocket),
