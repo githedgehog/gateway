@@ -140,6 +140,10 @@ spec:
                     description: VTEPMTU is the MTU for the VTEP interface
                     format: int32
                     type: integer
+                  workers:
+                    description: Workers defines the number of worker threads to use
+                      for dataplane
+                    type: integer
                 type: object
               peerings:
                 additionalProperties:
