@@ -2180,6 +2180,7 @@ type Interface struct {
 	SystemName    *string                `protobuf:"bytes,7,opt,name=system_name,json=systemName,proto3,oneof" json:"system_name,omitempty"` // Parent interface for VLAN devices, only for VLAN role
 	Ospf          *OspfInterface         `protobuf:"bytes,8,opt,name=ospf,proto3,oneof" json:"ospf,omitempty"`                               // OSPF interface configuration if enabled
 	Mtu           *uint32                `protobuf:"varint,9,opt,name=mtu,proto3,oneof" json:"mtu,omitempty"`                                // MTU for the interface
+	Pci           *string                `protobuf:"bytes,10,opt,name=pci,proto3,oneof" json:"pci,omitempty"`                                // PCI address of the interface, e.g. 0000:01:00.0
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2275,6 +2276,13 @@ func (x *Interface) GetMtu() uint32 {
 		return *x.Mtu
 	}
 	return 0
+}
+
+func (x *Interface) GetPci() string {
+	if x != nil && x.Pci != nil {
+		return *x.Pci
+	}
+	return ""
 }
 
 // Defines the list of prefixes that VPCs can expose
@@ -3873,7 +3881,7 @@ const file_proto_dataplane_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\v2\x11.config.VpcStatusR\x05value:\x028\x01\x1aa\n" +
 	"\x17VpcPeeringCountersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x120\n" +
-	"\x05value\x18\x02 \x01(\v2\x1a.config.VpcPeeringCountersR\x05value:\x028\x01\"\xdc\x02\n" +
+	"\x05value\x18\x02 \x01(\v2\x1a.config.VpcPeeringCountersR\x05value:\x028\x01\"\xfb\x02\n" +
 	"\tInterface\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\aipaddrs\x18\x02 \x03(\tR\aipaddrs\x12\"\n" +
@@ -3884,13 +3892,16 @@ const file_proto_dataplane_proto_rawDesc = "" +
 	"\vsystem_name\x18\a \x01(\tH\x02R\n" +
 	"systemName\x88\x01\x01\x12.\n" +
 	"\x04ospf\x18\b \x01(\v2\x15.config.OspfInterfaceH\x03R\x04ospf\x88\x01\x01\x12\x15\n" +
-	"\x03mtu\x18\t \x01(\rH\x04R\x03mtu\x88\x01\x01B\a\n" +
+	"\x03mtu\x18\t \x01(\rH\x04R\x03mtu\x88\x01\x01\x12\x15\n" +
+	"\x03pci\x18\n" +
+	" \x01(\tH\x05R\x03pci\x88\x01\x01B\a\n" +
 	"\x05_vlanB\n" +
 	"\n" +
 	"\b_macaddrB\x0e\n" +
 	"\f_system_nameB\a\n" +
 	"\x05_ospfB\x06\n" +
-	"\x04_mtu\">\n" +
+	"\x04_mtuB\x06\n" +
+	"\x04_pci\">\n" +
 	"\n" +
 	"PeeringIPs\x12\x14\n" +
 	"\x04cidr\x18\x01 \x01(\tH\x00R\x04cidr\x12\x12\n" +
