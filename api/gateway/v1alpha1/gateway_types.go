@@ -42,6 +42,8 @@ type GatewaySpec struct {
 
 // GatewayInterface defines the configuration for a gateway interface
 type GatewayInterface struct {
+	// PCI address of the interface (required for DPDK driver), e.g. 0000:00:01.0
+	PCI string `json:"pci,omitempty"`
 	// IPs is the list of IP address to assign to the interface
 	IPs []string `json:"ips,omitempty"`
 	// MTU for the interface

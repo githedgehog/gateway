@@ -427,7 +427,13 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 	{
 		ifaceFlags := lo.Flatten(lo.Map(slices.Sorted(maps.Keys(gw.Spec.Interfaces)),
 			func(ifaceName string, _ int) []string {
-				return []string{"--interface", ifaceName}
+				iface := gw.Spec.Interfaces[ifaceName]
+				val := ifaceName
+				if iface.PCI != "" {
+					val += "=" + iface.PCI
+				}
+
+				return []string{"--interface", val}
 			}))
 
 		dpDS := &appv1.DaemonSet{ObjectMeta: kmetav1.ObjectMeta{

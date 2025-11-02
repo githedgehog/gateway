@@ -46,12 +46,17 @@ func buildDataplaneConfig(ag *gwintapi.GatewayAgent) (*dataplane.GatewayConfig, 
 		},
 	}
 	for name, iface := range ag.Spec.Gateway.Interfaces {
+		var pci *string
+		if iface.PCI != "" {
+			pci = &iface.PCI
+		}
 		ifaces = append(ifaces, &dataplane.Interface{
 			Name:    name,
 			Ipaddrs: iface.IPs,
 			Type:    dataplane.IfType_IF_TYPE_ETHERNET,
 			Role:    dataplane.IfRole_IF_ROLE_FABRIC,
 			Mtu:     &iface.MTU,
+			Pci:     pci,
 		})
 	}
 	slices.SortFunc(ifaces, func(a, b *dataplane.Interface) int {
