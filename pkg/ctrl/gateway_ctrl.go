@@ -425,16 +425,33 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 	}
 
 	{
+		pcis, kernels := 0, 0
 		ifaceFlags := lo.Flatten(lo.Map(slices.Sorted(maps.Keys(gw.Spec.Interfaces)),
 			func(ifaceName string, _ int) []string {
 				iface := gw.Spec.Interfaces[ifaceName]
 				val := ifaceName
-				if iface.PCI != "" {
-					val += "=" + iface.PCI
+				switch {
+				case iface.PCI != "":
+					pcis++
+					val += "=pci@" + iface.PCI
+				case iface.Kernel != "":
+					kernels++
+					val += "=kernel@" + iface.Kernel
+					// TODO enable after migrating dataplane to a new interface format
+					// default:
+					// return nil
 				}
 
 				return []string{"--interface", val}
 			}))
+
+		driver := "kernel"
+		if pcis > 0 {
+			driver = "pci"
+		}
+		if pcis > 0 && kernels > 0 {
+			return fmt.Errorf("cannot use mixed PCI address and kernel name interfaces") //nolint:err113
+		}
 
 		dpDS := &appv1.DaemonSet{ObjectMeta: kmetav1.ObjectMeta{
 			Namespace: gw.Namespace,
@@ -469,7 +486,7 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 								Name:  "dataplane",
 								Image: r.cfg.DataplaneRef,
 								Args: append([]string{
-									"--driver", "kernel",
+									"--driver", driver,
 									"--num-workers", fmt.Sprintf("%d", gw.Spec.Workers),
 									"--grpc-address", dataplaneAPIAddress,
 									"--cli-sock-path", filepath.Join(dataplaneRunMountPath, "cli.sock"),
