@@ -111,12 +111,13 @@ github.com/modern-go/reflect2
 github.com/munnerz/goautoneg
 # github.com/nxadm/tail v1.4.11
 ## explicit; go 1.13
-# github.com/onsi/ginkgo/v2 v2.27.1
+# github.com/onsi/ginkgo/v2 v2.27.2
 ## explicit; go 1.23.0
 github.com/onsi/ginkgo/v2
 github.com/onsi/ginkgo/v2/config
 github.com/onsi/ginkgo/v2/formatter
 github.com/onsi/ginkgo/v2/ginkgo
+github.com/onsi/ginkgo/v2/ginkgo/automaxprocs
 github.com/onsi/ginkgo/v2/ginkgo/build
 github.com/onsi/ginkgo/v2/ginkgo/command
 github.com/onsi/ginkgo/v2/ginkgo/generators
@@ -199,12 +200,6 @@ github.com/x448/float16
 ## explicit; go 1.25
 go.githedgehog.com/gateway-proto/pkg/dataplane
 go.githedgehog.com/gateway-proto/pkg/protoyaml
-# go.uber.org/automaxprocs v1.6.0
-## explicit; go 1.20
-go.uber.org/automaxprocs
-go.uber.org/automaxprocs/internal/cgroups
-go.uber.org/automaxprocs/internal/runtime
-go.uber.org/automaxprocs/maxprocs
 # go.yaml.in/yaml/v2 v2.4.2
 ## explicit; go 1.15
 go.yaml.in/yaml/v2
