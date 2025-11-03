@@ -71,6 +71,10 @@ spec:
                       items:
                         type: string
                       type: array
+                    kernel:
+                      description: Kernel is the kernel name of the interface to use
+                        (required for kernel driver), e.g. enp2s1
+                      type: string
                     mtu:
                       description: MTU for the interface
                       format: int32

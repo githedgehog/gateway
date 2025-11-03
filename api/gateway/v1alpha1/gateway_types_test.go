@@ -31,9 +31,10 @@ func gwa(name string, f ...func(gw *v1alpha1.Gateway)) *v1alpha1.Gateway {
 			VTEPMAC:    "ca:fe:ba:be:00:01",
 			VTEPMTU:    1500,
 			Interfaces: map[string]v1alpha1.GatewayInterface{
-				"eth0": {
-					IPs: []string{"172.30.128.3/31"},
-					MTU: 1500,
+				"port0": {
+					Kernel: "eth0",
+					IPs:    []string{"172.30.128.3/31"},
+					MTU:    1500,
 				},
 			},
 			Neighbors: []v1alpha1.GatewayBGPNeighbor{
