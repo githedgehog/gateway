@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/samber/lo"
 	gwapi "go.githedgehog.com/gateway/api/gateway/v1alpha1"
 	gwintapi "go.githedgehog.com/gateway/api/gwint/v1alpha1"
 	"go.githedgehog.com/gateway/api/meta"
@@ -425,25 +424,36 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 	}
 
 	{
-		pcis, kernels := 0, 0
-		ifaceFlags := lo.Flatten(lo.Map(slices.Sorted(maps.Keys(gw.Spec.Interfaces)),
-			func(ifaceName string, _ int) []string {
-				iface := gw.Spec.Interfaces[ifaceName]
-				val := ifaceName
-				switch {
-				case iface.PCI != "":
-					pcis++
-					val += "=pci@" + iface.PCI
-				case iface.Kernel != "":
-					kernels++
-					val += "=kernel@" + iface.Kernel
-					// TODO enable after migrating dataplane to a new interface format
-					// default:
-					// return nil
-				}
+		args := []string{
+			"--num-workers", fmt.Sprintf("%d", gw.Spec.Workers),
+			"--grpc-address", dataplaneAPIAddress,
+			"--cli-sock-path", filepath.Join(dataplaneRunMountPath, "cli.sock"),
+			"--cpi-sock-path", filepath.Join(frrRunMountPath, cpiSocket),
+			"--frr-agent-path", filepath.Join(frrRunMountPath, frrAgentSocket),
+			"--metrics-address", fmt.Sprintf("127.0.0.1:%d", r.cfg.DataplaneMetricsPort),
+		}
+		if gw.Spec.Profiling.Enabled {
+			// args = append(args, "--pyroscope-url", "http://alloy-gw.fab.svc.cluster.local:4040")
+			args = append(args, "--pyroscope-url", "http://localhost:4040")
+		}
 
-				return []string{"--interface", val}
-			}))
+		pcis, kernels := 0, 0
+		for _, ifaceName := range slices.Sorted(maps.Keys(gw.Spec.Interfaces)) {
+			iface := gw.Spec.Interfaces[ifaceName]
+			val := ifaceName
+			switch {
+			case iface.PCI != "":
+				pcis++
+				val += "=pci@" + iface.PCI
+			case iface.Kernel != "":
+				kernels++
+				val += "=kernel@" + iface.Kernel
+				// TODO enable after migrating dataplane to a new interface format
+				// default:
+				// return nil
+			}
+			args = append(args, "--interface", val)
+		}
 
 		driver := "kernel"
 		if pcis > 0 {
@@ -452,6 +462,7 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 		if pcis > 0 && kernels > 0 {
 			return fmt.Errorf("cannot use mixed PCI address and kernel name interfaces") //nolint:err113
 		}
+		args = append(args, "--driver", driver)
 
 		dpDS := &appv1.DaemonSet{ObjectMeta: kmetav1.ObjectMeta{
 			Namespace: gw.Namespace,
@@ -485,15 +496,7 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 							{
 								Name:  "dataplane",
 								Image: r.cfg.DataplaneRef,
-								Args: append([]string{
-									"--driver", driver,
-									"--num-workers", fmt.Sprintf("%d", gw.Spec.Workers),
-									"--grpc-address", dataplaneAPIAddress,
-									"--cli-sock-path", filepath.Join(dataplaneRunMountPath, "cli.sock"),
-									"--cpi-sock-path", filepath.Join(frrRunMountPath, cpiSocket),
-									"--frr-agent-path", filepath.Join(frrRunMountPath, frrAgentSocket),
-									"--metrics-address", fmt.Sprintf("127.0.0.1:%d", r.cfg.DataplaneMetricsPort),
-								}, ifaceFlags...),
+								Args:  args,
 								SecurityContext: &corev1.SecurityContext{
 									Privileged: ptr.To(true),
 									RunAsUser:  ptr.To(int64(0)),
