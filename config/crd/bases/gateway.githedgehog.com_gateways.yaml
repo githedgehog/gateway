@@ -115,6 +115,12 @@ spec:
                       type: string
                   type: object
                 type: array
+              profiling:
+                description: Profiling defines the configuration for profiling
+                properties:
+                  enabled:
+                    type: boolean
+                type: object
               protocolIP:
                 description: ProtocolIP is used as a loopback IP and BGP Router ID
                 type: string
