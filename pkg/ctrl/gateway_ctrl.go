@@ -457,7 +457,7 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 
 		driver := "kernel"
 		if pcis > 0 {
-			driver = "pci"
+			driver = "dpdk"
 		}
 		if pcis > 0 && kernels > 0 {
 			return fmt.Errorf("cannot use mixed PCI address and kernel name interfaces") //nolint:err113
