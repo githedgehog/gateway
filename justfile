@@ -34,7 +34,7 @@ _kube_gen:
   # Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject implementations
   {{controller_gen}} object:headerFile="hack/boilerplate.go.txt" paths="./..."
   # Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects
-  {{controller_gen}} rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+  {{controller_gen}} rbac:roleName=manager-role crd:allowDangerousTypes=true webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 # Generate docs, code/manifests, things to embed, etc
 gen: _kube_gen _crd_ref_docs

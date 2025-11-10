@@ -250,6 +250,55 @@ spec:
                 description: Time of the last successful configuration application
                 format: date-time
                 type: string
+              state:
+                description: State represents collected data from the dataplane API
+                  the includes FRR as well
+                properties:
+                  dataplane:
+                    description: Dataplane is the status of the dataplane
+                    type: object
+                  frr:
+                    description: FRR is the status of the FRR daemon
+                    properties:
+                      lastAppliedGen:
+                        description: LastAppliedGen is the generation of the last
+                          successful application of a configuration to the FRR
+                        format: int64
+                        type: integer
+                    type: object
+                  lastCollectedTime:
+                    description: LastCollectedTime is the time of the last successful
+                      collection of data from the dataplane API
+                    format: date-time
+                    type: string
+                  peerings:
+                    additionalProperties:
+                      description: PeeringStatus represents the status of a peering
+                        between a pair of VPCs in one direction
+                      properties:
+                        b:
+                          description: Bytes is the number of bytes sent on the peering
+                          format: int64
+                          type: integer
+                        d:
+                          description: Drops is the number of packets dropped on the
+                            peering
+                          format: int64
+                          type: integer
+                        p:
+                          description: Packets is the number of packets sent on the
+                            peering
+                          format: int64
+                          type: integer
+                        pps:
+                          description: PktsPerSecond is the number of packets sent
+                            per second on the peering
+                          type: number
+                      type: object
+                    description: Peerings is the status of the VPCs peerings where
+                      key is VPC1->VPC2 and data is for one direction only
+                    type: object
+                type: object
             type: object
         type: object
     served: true

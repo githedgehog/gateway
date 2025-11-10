@@ -32,6 +32,41 @@ type GatewayAgentStatus struct {
 	LastAppliedTime kmetav1.Time `json:"lastAppliedTime,omitempty"`
 	// Generation of the last successful configuration application
 	LastAppliedGen int64 `json:"lastAppliedGen,omitempty"`
+	// State represents collected data from the dataplane API that includes FRR as well
+	State GatewayState `json:"state,omitempty"`
+}
+
+// GatewayState represents collected data from the dataplane API that includes FRR as well
+type GatewayState struct {
+	// LastCollectedTime is the time of the last successful collection of data from the dataplane API
+	LastCollectedTime kmetav1.Time `json:"lastCollectedTime,omitempty"`
+	// Dataplane is the status of the dataplane
+	Dataplane DataplaneStatus `json:"dataplane,omitempty"`
+	// FRR is the status of the FRR daemon
+	FRR FRRStatus `json:"frr,omitempty"`
+	// Peerings is the status of the VPCs peerings where key is VPC1->VPC2 and data is for one direction only
+	Peerings map[string]PeeringStatus `json:"peerings,omitempty"`
+}
+
+// DataplaneStatus represents the status of the dataplane
+type DataplaneStatus struct{}
+
+// FRRStatus represents the status of the FRR daemon
+type FRRStatus struct {
+	// LastAppliedGen is the generation of the last successful application of a configuration to the FRR
+	LastAppliedGen int64 `json:"lastAppliedGen,omitempty"`
+}
+
+// PeeringStatus represents the status of a peering between a pair of VPCs in one direction
+type PeeringStatus struct {
+	// Packets is the number of packets sent on the peering
+	Packets uint64 `json:"p,omitempty"`
+	// Bytes is the number of bytes sent on the peering
+	Bytes uint64 `json:"b,omitempty"`
+	// Drops is the number of packets dropped on the peering
+	Drops uint64 `json:"d,omitempty"`
+	// PktsPerSecond is the number of packets sent per second on the peering
+	PktsPerSecond float64 `json:"pps,omitempty"`
 }
 
 // +kubebuilder:object:root=true
