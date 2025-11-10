@@ -493,14 +493,14 @@ _Appears in:_
 | `agentVersion` _string_ | AgentVersion is the version of the gateway agent |  |  |
 | `lastAppliedTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#time-v1-meta)_ | Time of the last successful configuration application |  |  |
 | `lastAppliedGen` _integer_ | Generation of the last successful configuration application |  |  |
-| `state` _[GatewayState](#gatewaystate)_ | State represents collected data from the dataplane API the includes FRR as well |  |  |
+| `state` _[GatewayState](#gatewaystate)_ | State represents collected data from the dataplane API that includes FRR as well |  |  |
 
 
 #### GatewayState
 
 
 
-GatewayState represents collected data from the dataplane API the includes FRR as well
+GatewayState represents collected data from the dataplane API that includes FRR as well
 
 
 

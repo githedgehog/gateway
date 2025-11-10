@@ -236,6 +236,7 @@ spec:
                   type: object
                 type: object
             type: object
+            x-kubernetes-map-type: atomic
           status:
             description: GatewayAgentStatus defines the observed state of GatewayAgent.
             properties:
@@ -252,7 +253,7 @@ spec:
                 type: string
               state:
                 description: State represents collected data from the dataplane API
-                  the includes FRR as well
+                  that includes FRR as well
                 properties:
                   dataplane:
                     description: Dataplane is the status of the dataplane
@@ -300,6 +301,7 @@ spec:
                     type: object
                 type: object
             type: object
+            x-kubernetes-map-type: atomic
         type: object
     served: true
     storage: true
