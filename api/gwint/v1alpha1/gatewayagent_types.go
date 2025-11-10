@@ -84,7 +84,10 @@ type GatewayAgent struct {
 	kmetav1.TypeMeta   `json:",inline"`
 	kmetav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   GatewayAgentSpec   `json:"spec,omitempty"`
+	// +structType=atomic
+	Spec GatewayAgentSpec `json:"spec,omitempty"`
+
+	// +structType=atomic
 	Status GatewayAgentStatus `json:"status,omitempty"`
 }
 
