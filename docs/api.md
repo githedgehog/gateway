@@ -410,6 +410,35 @@ Package v1alpha1 contains API Schema definitions for the gwint v1alpha1 API grou
 
 
 
+#### DataplaneStatus
+
+
+
+DataplaneStatus represents the status of the dataplane
+
+
+
+_Appears in:_
+- [GatewayState](#gatewaystate)
+
+
+
+#### FRRStatus
+
+
+
+FRRStatus represents the status of the FRR daemon
+
+
+
+_Appears in:_
+- [GatewayState](#gatewaystate)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `lastAppliedGen` _integer_ | LastAppliedGen is the generation of the last successful application of a configuration to the FRR |  |  |
+
+
 #### GatewayAgent
 
 
@@ -464,6 +493,45 @@ _Appears in:_
 | `agentVersion` _string_ | AgentVersion is the version of the gateway agent |  |  |
 | `lastAppliedTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#time-v1-meta)_ | Time of the last successful configuration application |  |  |
 | `lastAppliedGen` _integer_ | Generation of the last successful configuration application |  |  |
+| `state` _[GatewayState](#gatewaystate)_ | State represents collected data from the dataplane API the includes FRR as well |  |  |
+
+
+#### GatewayState
+
+
+
+GatewayState represents collected data from the dataplane API the includes FRR as well
+
+
+
+_Appears in:_
+- [GatewayAgentStatus](#gatewayagentstatus)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `lastCollectedTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#time-v1-meta)_ | LastCollectedTime is the time of the last successful collection of data from the dataplane API |  |  |
+| `dataplane` _[DataplaneStatus](#dataplanestatus)_ | Dataplane is the status of the dataplane |  |  |
+| `frr` _[FRRStatus](#frrstatus)_ | FRR is the status of the FRR daemon |  |  |
+| `peerings` _object (keys:string, values:[PeeringStatus](#peeringstatus))_ | Peerings is the status of the VPCs peerings where key is VPC1->VPC2 and data is for one direction only |  |  |
+
+
+#### PeeringStatus
+
+
+
+PeeringStatus represents the status of a peering between a pair of VPCs in one direction
+
+
+
+_Appears in:_
+- [GatewayState](#gatewaystate)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `p` _integer_ | Packets is the number of packets sent on the peering |  |  |
+| `b` _integer_ | Bytes is the number of bytes sent on the peering |  |  |
+| `d` _integer_ | Drops is the number of packets dropped on the peering |  |  |
+| `pps` _float_ | PktsPerSecond is the number of packets sent per second on the peering |  |  |
 
 
 #### VPCInfoData

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 	"os"
 	"time"
 
@@ -42,6 +43,7 @@ type Service struct {
 	curr     *gwintapi.GatewayAgent
 	dpConn   *grpc.ClientConn
 	dpClient dataplane.ConfigServiceClient
+	state    gwintapi.GatewayState
 }
 
 func New() *Service {
@@ -137,8 +139,11 @@ func (svc *Service) watchAgent(ctx context.Context) error {
 	}
 	defer watcher.Stop()
 
-	enforce := time.NewTicker(5 * time.Second)
-	defer enforce.Stop()
+	enforceTicker := time.NewTicker(5 * time.Second)
+	defer enforceTicker.Stop()
+
+	statusTicker := time.NewTicker(15 * time.Second)
+	defer statusTicker.Stop()
 
 	for {
 		select {
@@ -178,7 +183,7 @@ func (svc *Service) watchAgent(ctx context.Context) error {
 					return fmt.Errorf("handling agent: %w", err)
 				}
 
-				if err := updateStatus(ctx, svc.kube, svc.curr); err != nil {
+				if err := svc.updateStatus(ctx); err != nil {
 					return fmt.Errorf("updating agent status (watch): %w", err)
 				}
 			case watch.Deleted:
@@ -196,7 +201,7 @@ func (svc *Service) watchAgent(ctx context.Context) error {
 
 				return nil
 			}
-		case <-enforce.C:
+		case <-enforceTicker.C:
 			if err := svc.enforceDataplaneConfig(ctx, svc.curr); err != nil {
 				if status, ok := status.FromError(errors.Unwrap(err)); ok {
 					if status.Code() == codes.Unavailable {
@@ -211,33 +216,46 @@ func (svc *Service) watchAgent(ctx context.Context) error {
 				return fmt.Errorf("enforcing config: %w", err)
 			}
 
-			if svc.curr.Status.LastAppliedGen != svc.curr.Generation || svc.curr.Status.AgentVersion != version.Version {
-				if err := updateStatus(ctx, svc.kube, svc.curr); err != nil {
-					return fmt.Errorf("updating agent status (enforcer): %w", err)
-				}
+			if err := svc.updateStatus(ctx); err != nil {
+				return fmt.Errorf("updating agent status (enforcer): %w", err)
+			}
+		case <-statusTicker.C:
+			if err := svc.collectDataplaneStatus(ctx); err != nil {
+				return fmt.Errorf("collecting dataplane status: %w", err)
+			}
+
+			if err := svc.updateStatus(ctx); err != nil {
+				return fmt.Errorf("updating agent status (status): %w", err)
 			}
 		}
 	}
 }
 
-func updateStatus(ctx context.Context, kube kclient.Client, agOrig *gwintapi.GatewayAgent) error {
-	ag := agOrig.DeepCopy()
+func (svc *Service) updateStatus(ctx context.Context) error {
+	changed := svc.curr.Status.LastAppliedGen != svc.curr.Generation || svc.curr.Status.AgentVersion != version.Version
+	changed = changed || !svc.curr.Status.State.LastCollectedTime.Equal(&svc.state.LastCollectedTime)
+	if !changed {
+		return nil
+	}
+
+	ag := svc.curr.DeepCopy()
 	fetch := false
 
 	if err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		if fetch {
 			slog.Debug("Fetching latest agent to update status")
-			if err := kube.Get(ctx, kclient.ObjectKeyFromObject(ag), ag); err != nil {
+			if err := svc.kube.Get(ctx, kclient.ObjectKeyFromObject(ag), ag); err != nil {
 				return fmt.Errorf("fetching latest agent: %w", err)
 			}
 		}
 		fetch = true
 
 		ag.Status.AgentVersion = version.Version
-		ag.Status.LastAppliedGen = agOrig.Generation // it's important to use the original generation
+		ag.Status.LastAppliedGen = svc.curr.Generation // it's important to use the original generation
 		ag.Status.LastAppliedTime = kmetav1.Now()
+		ag.Status.State = svc.state
 
-		if err := kube.Status().Update(ctx, ag); err != nil {
+		if err := svc.kube.Status().Update(ctx, ag); err != nil {
 			return fmt.Errorf("updating agent status: %w", err)
 		}
 
@@ -295,7 +313,58 @@ func (svc *Service) enforceDataplaneConfig(ctx context.Context, ag *gwintapi.Gat
 		}
 	}
 
-	// TODO report status to the agent object
+	return nil
+}
+
+func (svc *Service) collectDataplaneStatus(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	resp, err := svc.dpClient.GetDataplaneStatus(ctx, &dataplane.GetDataplaneStatusRequest{})
+	if err != nil {
+		if status, ok := status.FromError(err); ok {
+			if status.Code() != codes.Unavailable {
+				slog.Warn("Failed to get dataplane status", "error", err, "message", status.Message(), "code", status.Code())
+			}
+		} else {
+			slog.Warn("Failed to get dataplane status", "error", err)
+		}
+	} else {
+		gwStatusData, err := protoyaml.MarshalYAML(resp)
+		if err != nil {
+			return fmt.Errorf("marshalling dataplane status to yaml: %w", err)
+		}
+
+		// TODO remove
+		fmt.Fprintln(os.Stderr, string(gwStatusData))
+
+		svc.state = gwintapi.GatewayState{
+			LastCollectedTime: kmetav1.Now(),
+		}
+
+		if resp.FrrStatus != nil {
+			svc.state.FRR = gwintapi.FRRStatus{
+				LastAppliedGen: resp.FrrStatus.AppliedConfigGen,
+			}
+		}
+
+		if resp.VpcPeeringCounters != nil {
+			svc.state.Peerings = make(map[string]gwintapi.PeeringStatus, len(resp.VpcPeeringCounters))
+			for name, p := range resp.VpcPeeringCounters {
+				pps := p.Pps
+				if math.IsInf(pps, 0) || math.IsNaN(pps) {
+					pps = 0
+				}
+
+				svc.state.Peerings[name] = gwintapi.PeeringStatus{
+					Packets:       p.Packets,
+					Bytes:         p.Bytes,
+					Drops:         p.Drops,
+					PktsPerSecond: pps,
+				}
+			}
+		}
+	}
 
 	return nil
 }
