@@ -464,6 +464,31 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 		}
 		args = append(args, "--driver", driver)
 
+		// tmp hack to make dp work
+		var initContainers []corev1.Container
+		if driver == "kernel" {
+			iArgs := "set -ex && "
+			for _, ifaceName := range slices.Sorted(maps.Keys(gw.Spec.Interfaces)) {
+				iface := gw.Spec.Interfaces[ifaceName]
+				iArgs += fmt.Sprintf("(ethtool -K %s gro off || echo 'gro off failed') && ", ifaceName)
+				iArgs += fmt.Sprintf("ip l set mtu %d dev %s && ", iface.MTU, ifaceName)
+			}
+			iArgs += "echo done"
+
+			initContainers = []corev1.Container{
+				{
+					Name:    "init-mtu-offloads",
+					Image:   "172.30.0.1:31000/githedgehog/toolbox:v0.9.0", // TODO use a proper image
+					Command: []string{"/bin/bash", "-c", "--"},
+					Args:    []string{iArgs},
+					SecurityContext: &corev1.SecurityContext{
+						Privileged: ptr.To(true),
+						RunAsUser:  ptr.To(int64(0)),
+					},
+				},
+			}
+		}
+
 		dpDS := &appv1.DaemonSet{ObjectMeta: kmetav1.ObjectMeta{
 			Namespace: gw.Namespace,
 			Name:      entityName(gw.Name, "dataplane"),
@@ -492,6 +517,7 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 						DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
 						TerminationGracePeriodSeconds: ptr.To(int64(10)),
 						Tolerations:                   r.cfg.Tolerations,
+						InitContainers:                initContainers,
 						Containers: []corev1.Container{
 							{
 								Name:  "dataplane",
