@@ -476,10 +476,16 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 			}
 			iArgs += "echo done"
 
+			toolboxRef := r.cfg.ToolboxRef
+			if toolboxRef == "" {
+				// TODO remove when passed from the fabricator
+				toolboxRef = "172.30.0.1:31000/githedgehog/toolbox:v0.9.0"
+			}
+
 			initContainers = []corev1.Container{
 				{
-					Name:    "init-mtu-offloads",
-					Image:   "172.30.0.1:31000/githedgehog/toolbox:v0.9.0", // TODO use a proper image
+					Name:    "init-ifaces",
+					Image:   toolboxRef,
 					Command: []string{"/bin/bash", "-c", "--"},
 					Args:    []string{iArgs},
 					SecurityContext: &corev1.SecurityContext{
