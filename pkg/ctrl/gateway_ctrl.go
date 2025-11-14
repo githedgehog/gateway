@@ -472,6 +472,7 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 				iface := gw.Spec.Interfaces[ifaceName]
 				iArgs += fmt.Sprintf("(ethtool -K %s gro off || echo 'gro off failed') && ", ifaceName)
 				iArgs += fmt.Sprintf("ip l set mtu %d dev %s && ", iface.MTU, ifaceName)
+				iArgs += fmt.Sprintf("([[ $(basename $(readlink -f \"/sys/class/net/%[1]s/device/driver\")) == e1000 ]] && tee /sys/class/net/%[1]s/queues/rx-0/rps_cpus <<< ff || echo 'not e1000') && ", ifaceName)
 			}
 			iArgs += "echo done"
 
