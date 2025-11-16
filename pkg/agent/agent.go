@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"math"
 	"os"
+	"strconv"
 	"time"
 
 	"go.githedgehog.com/gateway-proto/pkg/dataplane"
@@ -43,7 +44,7 @@ type Service struct {
 	curr     *gwintapi.GatewayAgent
 	dpConn   *grpc.ClientConn
 	dpClient dataplane.ConfigServiceClient
-	state    gwintapi.GatewayState
+	status   gwintapi.GatewayAgentStatus
 }
 
 func New() *Service {
@@ -73,6 +74,8 @@ func (svc *Service) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("creating kube client: %w", err)
 	}
+
+	svc.status.AgentVersion = version.Version
 
 	grpclog.SetLoggerV2(NewGRPCLogger(slog.Default(), slog.LevelError))
 
@@ -233,9 +236,14 @@ func (svc *Service) watchAgent(ctx context.Context) error {
 
 func (svc *Service) updateStatus(ctx context.Context) error {
 	changed := svc.curr.Status.LastAppliedGen != svc.curr.Generation || svc.curr.Status.AgentVersion != version.Version
-	changed = changed || !svc.curr.Status.State.LastCollectedTime.Equal(&svc.state.LastCollectedTime)
+	changed = changed || !svc.curr.Status.State.LastCollectedTime.Equal(&svc.status.State.LastCollectedTime)
 	if !changed {
 		return nil
+	}
+
+	if svc.curr.Status.LastAppliedGen != svc.curr.Generation || svc.curr.Status.AgentVersion != version.Version {
+		svc.status.LastAppliedGen = svc.curr.Generation // it's important to use the original generation
+		svc.status.LastAppliedTime = kmetav1.Now()
 	}
 
 	ag := svc.curr.DeepCopy()
@@ -250,10 +258,7 @@ func (svc *Service) updateStatus(ctx context.Context) error {
 		}
 		fetch = true
 
-		ag.Status.AgentVersion = version.Version
-		ag.Status.LastAppliedGen = svc.curr.Generation // it's important to use the original generation
-		ag.Status.LastAppliedTime = kmetav1.Now()
-		ag.Status.State = svc.state
+		ag.Status = svc.status
 
 		if err := svc.kube.Status().Update(ctx, ag); err != nil {
 			return fmt.Errorf("updating agent status: %w", err)
@@ -330,38 +335,53 @@ func (svc *Service) collectDataplaneStatus(ctx context.Context) error {
 			slog.Warn("Failed to get dataplane status", "error", err)
 		}
 	} else {
-		gwStatusData, err := protoyaml.MarshalYAML(resp)
-		if err != nil {
-			return fmt.Errorf("marshalling dataplane status to yaml: %w", err)
-		}
-
-		// TODO remove
-		fmt.Fprintln(os.Stderr, string(gwStatusData))
-
-		svc.state = gwintapi.GatewayState{
+		svc.status.State = gwintapi.GatewayState{
 			LastCollectedTime: kmetav1.Now(),
 		}
 
 		if resp.FrrStatus != nil {
-			svc.state.FRR = gwintapi.FRRStatus{
+			svc.status.State.FRR = gwintapi.FRRStatus{
 				LastAppliedGen: resp.FrrStatus.AppliedConfigGen,
 			}
 		}
 
-		if resp.VpcPeeringCounters != nil {
-			svc.state.Peerings = make(map[string]gwintapi.PeeringStatus, len(resp.VpcPeeringCounters))
-			for name, p := range resp.VpcPeeringCounters {
-				pps := p.Pps
-				if math.IsInf(pps, 0) || math.IsNaN(pps) {
-					pps = 0
-				}
+		svc.status.State.VPCs = make(map[string]gwintapi.VPCStatus, len(resp.VpcCounters))
+		for name, v := range resp.VpcCounters {
+			p, err := strconv.ParseUint(v.TotalPackets, 10, 64)
+			if err != nil {
+				slog.Warn("Failed to parse total packets", "vpc", name, "error", err)
+			}
+			d, err := strconv.ParseUint(v.TotalDrops, 10, 64)
+			if err != nil {
+				slog.Warn("Failed to parse total drops", "vpc", name, "error", err)
+			}
 
-				svc.state.Peerings[name] = gwintapi.PeeringStatus{
-					Packets:       p.Packets,
-					Bytes:         p.Bytes,
-					Drops:         p.Drops,
-					PktsPerSecond: pps,
-				}
+			if p == 0 && d == 0 {
+				continue
+			}
+
+			svc.status.State.VPCs[name] = gwintapi.VPCStatus{
+				Packets: p,
+				Drops:   d,
+			}
+		}
+
+		svc.status.State.Peerings = make(map[string]gwintapi.PeeringStatus, len(resp.VpcPeeringCounters))
+		for name, p := range resp.VpcPeeringCounters {
+			pps := p.Pps
+			if math.IsInf(pps, 0) || math.IsNaN(pps) {
+				pps = 0
+			}
+
+			if p.Packets == 0 && p.Bytes == 0 && p.Drops == 0 && pps == 0 {
+				continue
+			}
+
+			svc.status.State.Peerings[name] = gwintapi.PeeringStatus{
+				Packets:       p.Packets,
+				Bytes:         p.Bytes,
+				Drops:         p.Drops,
+				PktsPerSecond: pps,
 			}
 		}
 	}

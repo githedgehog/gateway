@@ -41,7 +41,7 @@ gen: _kube_gen _crd_ref_docs
   {{crd_ref_docs}} --source-path=./api/ --config=api/docs.config.yaml --renderer=markdown --output-path=./docs/api.md
 
 # Build all artifacts
-build: _license_headers _gotools gen && version
+build: gen _license_headers _gotools  && version
   {{go_linux_build}} -o ./bin/gateway ./cmd
   {{go_linux_build}} -o ./bin/gateway-agent ./cmd/gateway-agent
   # Build complete
