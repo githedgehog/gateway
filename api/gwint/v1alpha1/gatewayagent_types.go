@@ -40,21 +40,27 @@ type GatewayAgentStatus struct {
 type GatewayState struct {
 	// LastCollectedTime is the time of the last successful collection of data from the dataplane API
 	LastCollectedTime kmetav1.Time `json:"lastCollectedTime,omitempty"`
-	// Dataplane is the status of the dataplane
-	Dataplane DataplaneStatus `json:"dataplane,omitempty"`
 	// FRR is the status of the FRR daemon
 	FRR FRRStatus `json:"frr,omitempty"`
+	// VPCs is the status of the VPCs where key is the vpc (vpcinfo) name
+	VPCs map[string]VPCStatus `json:"vpcs,omitempty"`
 	// Peerings is the status of the VPCs peerings where key is VPC1->VPC2 and data is for one direction only
 	Peerings map[string]PeeringStatus `json:"peerings,omitempty"`
 }
-
-// DataplaneStatus represents the status of the dataplane
-type DataplaneStatus struct{}
 
 // FRRStatus represents the status of the FRR daemon
 type FRRStatus struct {
 	// LastAppliedGen is the generation of the last successful application of a configuration to the FRR
 	LastAppliedGen int64 `json:"lastAppliedGen,omitempty"`
+}
+
+type VPCStatus struct {
+	// Packets is the number of packets sent on the vpc
+	Packets uint64 `json:"p,omitempty"`
+	// Bytes is the number of bytes sent on the vpc
+	Bytes uint64 `json:"b,omitempty"`
+	// Drops is the number of packets dropped on the vpc
+	Drops uint64 `json:"d,omitempty"`
 }
 
 // PeeringStatus represents the status of a peering between a pair of VPCs in one direction
@@ -65,6 +71,8 @@ type PeeringStatus struct {
 	Bytes uint64 `json:"b,omitempty"`
 	// Drops is the number of packets dropped on the peering
 	Drops uint64 `json:"d,omitempty"`
+	// BytesPerSecond is the number of bytes sent per second on the peering
+	BytesPerSecond float64 `json:"bps,omitempty"`
 	// PktsPerSecond is the number of packets sent per second on the peering
 	PktsPerSecond float64 `json:"pps,omitempty"`
 }

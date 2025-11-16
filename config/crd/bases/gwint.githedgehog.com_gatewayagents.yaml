@@ -255,9 +255,6 @@ spec:
                 description: State represents collected data from the dataplane API
                   that includes FRR as well
                 properties:
-                  dataplane:
-                    description: Dataplane is the status of the dataplane
-                    type: object
                   frr:
                     description: FRR is the status of the FRR daemon
                     properties:
@@ -281,6 +278,10 @@ spec:
                           description: Bytes is the number of bytes sent on the peering
                           format: int64
                           type: integer
+                        bps:
+                          description: BytesPerSecond is the number of bytes sent
+                            per second on the peering
+                          type: number
                         d:
                           description: Drops is the number of packets dropped on the
                             peering
@@ -298,6 +299,27 @@ spec:
                       type: object
                     description: Peerings is the status of the VPCs peerings where
                       key is VPC1->VPC2 and data is for one direction only
+                    type: object
+                  vpcs:
+                    additionalProperties:
+                      properties:
+                        b:
+                          description: Bytes is the number of bytes sent on the vpc
+                          format: int64
+                          type: integer
+                        d:
+                          description: Drops is the number of packets dropped on the
+                            vpc
+                          format: int64
+                          type: integer
+                        p:
+                          description: Packets is the number of packets sent on the
+                            vpc
+                          format: int64
+                          type: integer
+                      type: object
+                    description: VPCs is the status of the VPCs where key is the vpc
+                      (vpcinfo) name
                     type: object
                 type: object
             type: object
