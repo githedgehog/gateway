@@ -10,7 +10,6 @@ import (
 	"log/slog"
 	"math"
 	"os"
-	"strconv"
 	"time"
 
 	"go.githedgehog.com/gateway-proto/pkg/dataplane"
@@ -347,22 +346,14 @@ func (svc *Service) collectDataplaneStatus(ctx context.Context) error {
 
 		svc.status.State.VPCs = make(map[string]gwintapi.VPCStatus, len(resp.VpcCounters))
 		for name, v := range resp.VpcCounters {
-			p, err := strconv.ParseUint(v.TotalPackets, 10, 64)
-			if err != nil {
-				slog.Warn("Failed to parse total packets", "vpc", name, "error", err)
-			}
-			d, err := strconv.ParseUint(v.TotalDrops, 10, 64)
-			if err != nil {
-				slog.Warn("Failed to parse total drops", "vpc", name, "error", err)
-			}
-
-			if p == 0 && d == 0 {
+			if v.Packets == 0 && v.Bytes == 0 && v.Drops == 0 {
 				continue
 			}
 
 			svc.status.State.VPCs[name] = gwintapi.VPCStatus{
-				Packets: p,
-				Drops:   d,
+				Packets: v.Packets,
+				Bytes:   v.Bytes,
+				Drops:   v.Drops,
 			}
 		}
 
@@ -372,16 +363,21 @@ func (svc *Service) collectDataplaneStatus(ctx context.Context) error {
 			if math.IsInf(pps, 0) || math.IsNaN(pps) {
 				pps = 0
 			}
+			bps := p.Bps
+			if math.IsInf(bps, 0) || math.IsNaN(bps) {
+				bps = 0
+			}
 
-			if p.Packets == 0 && p.Bytes == 0 && p.Drops == 0 && pps == 0 {
+			if p.Packets == 0 && p.Bytes == 0 && p.Drops == 0 && pps == 0 && bps == 0 {
 				continue
 			}
 
 			svc.status.State.Peerings[name] = gwintapi.PeeringStatus{
-				Packets:       p.Packets,
-				Bytes:         p.Bytes,
-				Drops:         p.Drops,
-				PktsPerSecond: pps,
+				Packets:        p.Packets,
+				Bytes:          p.Bytes,
+				Drops:          p.Drops,
+				BytesPerSecond: bps,
+				PktsPerSecond:  pps,
 			}
 		}
 	}
