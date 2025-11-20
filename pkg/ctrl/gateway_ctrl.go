@@ -308,7 +308,15 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 		},
 	}
 
-	{
+	agCM := &corev1.ConfigMap{ObjectMeta: kmetav1.ObjectMeta{
+		Namespace: gw.Namespace,
+		Name:      entityName(gw.Name, "agent"),
+	}}
+	agDS := &appv1.DaemonSet{ObjectMeta: kmetav1.ObjectMeta{
+		Namespace: gw.Namespace,
+		Name:      entityName(gw.Name, "agent"),
+	}}
+	if !r.cfg.Agentless {
 		agCfgData, err := kyaml.Marshal(&meta.AgentConfig{
 			Name:             gw.Name,
 			Namespace:        gw.Namespace,
@@ -318,10 +326,6 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 			return fmt.Errorf("marshalling agent config: %w", err)
 		}
 
-		agCM := &corev1.ConfigMap{ObjectMeta: kmetav1.ObjectMeta{
-			Namespace: gw.Namespace,
-			Name:      entityName(gw.Name, "agent"),
-		}}
 		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, agCM, func() error {
 			if err := ctrlutil.SetControllerReference(gw, agCM, r.Scheme(),
 				ctrlutil.WithBlockOwnerDeletion(false)); err != nil {
@@ -336,13 +340,7 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 		}); err != nil {
 			return fmt.Errorf("creating or updating gateway agent configmap: %w", err)
 		}
-	}
 
-	{
-		agDS := &appv1.DaemonSet{ObjectMeta: kmetav1.ObjectMeta{
-			Namespace: gw.Namespace,
-			Name:      entityName(gw.Name, "agent"),
-		}}
 		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, agDS, func() error {
 			if err := ctrlutil.SetControllerReference(gw, agDS, r.Scheme(),
 				ctrlutil.WithBlockOwnerDeletion(false)); err != nil {
@@ -410,6 +408,14 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 			return nil
 		}); err != nil {
 			return fmt.Errorf("creating or updating gateway agent daemonset: %w", err)
+		}
+	} else {
+		if err := r.Client.Delete(ctx, agCM); err != nil && !kapierrors.IsNotFound(err) {
+			return fmt.Errorf("deleting gateway agent configmap: %w", err)
+		}
+
+		if err := r.Client.Delete(ctx, agDS); err != nil && !kapierrors.IsNotFound(err) {
+			return fmt.Errorf("deleting gateway agent daemonset: %w", err)
 		}
 	}
 
@@ -491,6 +497,11 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 			}
 		}
 
+		dpSAName := ""
+		if r.cfg.Agentless {
+			dpSAName = saName
+		}
+
 		dpDS := &appv1.DaemonSet{ObjectMeta: kmetav1.ObjectMeta{
 			Namespace: gw.Namespace,
 			Name:      entityName(gw.Name, "dataplane"),
@@ -519,6 +530,7 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 						DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
 						TerminationGracePeriodSeconds: ptr.To(int64(10)),
 						Tolerations:                   r.cfg.Tolerations,
+						ServiceAccountName:            dpSAName,
 						InitContainers:                initContainers,
 						Containers: []corev1.Container{
 							{
