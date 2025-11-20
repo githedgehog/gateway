@@ -680,8 +680,9 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 							{
 								Name:    "frr",
 								Image:   r.cfg.FRRRef,
-								Command: []string{"/libexec/frr/docker-start"},
+								Command: []string{"/bin/tini", "--"},
 								Args: []string{
+									"/libexec/frr/docker-start",
 									"--sock-path", filepath.Join(frrRunMountPath, frrAgentSocket),
 									"--reloader", "/libexec/frr/frr-reload.py",
 									"--bindir", "/bin",
