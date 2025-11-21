@@ -173,26 +173,39 @@ jobs:
       - test-api
       - test-build
 
-    name: "${{ matrix.hybrid && 'hlab' || 'vlab' }}-${{ matrix.fabricmode == 'spine-leaf' && 'sl' || 'cc' }}-${{ matrix.gateway && 'gw-' || '' }}${{ matrix.includeonie && 'onie-' || '' }}${{ matrix.buildmode }}-${{ matrix.vpcmode }}"
+    name: "${{ matrix.hybrid && 'h' || 'v' }}-${{ matrix.upgradefrom && 'up' || '' }}${{ matrix.upgradefrom }}${{ matrix.upgradefrom && '-' || '' }}${{ matrix.mesh && 'mesh-' || '' }}${{ matrix.gateway && 'gw-' || '' }}${{ matrix.includeonie && 'onie-' || '' }}${{ matrix.buildmode }}-${{ matrix.vpcmode }}"
 
     uses: githedgehog/fabricator/.github/workflows/run-vlab.yaml@master
     with:
-      skip: ${{ matrix.hybrid && !contains(github.event.pull_request.labels.*.name, 'ci:+hlab') || !matrix.hybrid && contains(github.event.pull_request.labels.*.name, 'ci:-vlab') }}
+      skip: >-
+        ${{
+          github.event_name == 'pull_request'
+          && (
+            matrix.hybrid && !contains(github.event.pull_request.labels.*.name, 'ci:+hlab')
+            || !matrix.hybrid && contains(github.event.pull_request.labels.*.name, 'ci:-vlab')
+          ) && (
+            matrix.upgradefrom == '' || contains(github.event.pull_request.labels.*.name, 'ci:-upgrade')
+          )
+        }}
       fabricatorref: master
       prebuild: "just bump gateway ${{ needs.test-build.outputs.version }} ${{ needs.test-build.outputs.ref }}"
       fabricmode: ${{ matrix.fabricmode }}
+      mesh: ${{ matrix.mesh }}
       gateway: ${{ matrix.gateway }}
       includeonie: ${{ matrix.includeonie }}
       buildmode: ${{ matrix.buildmode }}
       vpcmode: ${{ matrix.vpcmode }}
       releasetest: ${{ contains(github.event.pull_request.labels.*.name, 'ci:+release') }}
       hybrid: ${{ matrix.hybrid }}
+      upgradefrom: ${{ matrix.upgradefrom }}
 
     strategy:
       fail-fast: false
       matrix:
         fabricmode:
           - spine-leaf
+        mesh:
+          - false
         gateway:
           - true
         includeonie:
@@ -210,6 +223,7 @@ jobs:
         include:
           # hlab gateway l2vni
           - fabricmode: spine-leaf
+            mesh: false
             gateway: true
             includeonie: false
             buildmode: iso
