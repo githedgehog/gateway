@@ -204,13 +204,18 @@ jobs:
           - l3vni
         hybrid:
           - false
+        upgradefrom:
+          - ""
+          - "25.05"
         include:
+          # hlab gateway l2vni
           - fabricmode: spine-leaf
             gateway: true
             includeonie: false
             buildmode: iso
             vpcmode: l2vni
             hybrid: true
+            upgradefrom: ""
 
   vlabs:
     runs-on: ubuntu-latest
