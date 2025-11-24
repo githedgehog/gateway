@@ -40,7 +40,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -81,7 +81,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -260,7 +260,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -290,7 +290,7 @@ jobs:
       # Bump gateway in the fabricator repository
 
       - name: Checkout fabricator repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: githedgehog/fabricator
           path: fab-repo
@@ -334,7 +334,7 @@ jobs:
       # Bump gateway in the fabric repository
 
       - name: Checkout fabric repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: githedgehog/fabric
           path: fabric-repo
@@ -376,7 +376,7 @@ jobs:
       # Bump gateway docs in the docs repository
 
       - name: Checkout docs repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: githedgehog/docs
           path: docs-repo
