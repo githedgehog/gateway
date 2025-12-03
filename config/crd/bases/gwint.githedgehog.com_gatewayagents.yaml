@@ -251,6 +251,10 @@ spec:
                 description: Time of the last successful configuration application
                 format: date-time
                 type: string
+              lastHeartbeat:
+                description: Time of the last heartbeat from the agent
+                format: date-time
+                type: string
               state:
                 description: State represents collected data from the dataplane API
                   that includes FRR as well
