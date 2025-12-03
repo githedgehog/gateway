@@ -315,6 +315,10 @@ func (svc *Service) enforceDataplaneConfig(ctx context.Context, ag *gwintapi.Gat
 		if resp.Error != dataplane.Error_ERROR_NONE {
 			return fmt.Errorf("updating config returned error: %s", resp.Error.String()) //nolint:goerr113
 		}
+
+		if err := svc.collectDataplaneStatus(ctx); err != nil {
+			slog.Warn("Failed to collect dp status after enforcing config", "error", err.Error())
+		}
 	}
 
 	return nil
