@@ -74,7 +74,16 @@ func (svc *Service) Run(ctx context.Context) error {
 		return fmt.Errorf("creating kube client: %w", err)
 	}
 
-	svc.status.AgentVersion = version.Version
+	svc.curr = &gwintapi.GatewayAgent{}
+	if err := svc.kube.Get(ctx, kclient.ObjectKey{
+		Name:      svc.cfg.Name,
+		Namespace: svc.cfg.Namespace,
+	}, svc.curr); err != nil {
+		return fmt.Errorf("getting agent object: %w", err)
+	}
+	if err := svc.resetStatus(ctx); err != nil {
+		return fmt.Errorf("resetting status: %w", err)
+	}
 
 	grpclog.SetLoggerV2(NewGRPCLogger(slog.Default(), slog.LevelError))
 
@@ -126,14 +135,6 @@ func (svc *Service) Run(ctx context.Context) error {
 }
 
 func (svc *Service) watchAgent(ctx context.Context) error {
-	svc.curr = &gwintapi.GatewayAgent{}
-	if err := svc.kube.Get(ctx, kclient.ObjectKey{
-		Name:      svc.cfg.Name,
-		Namespace: svc.cfg.Namespace,
-	}, svc.curr); err != nil {
-		return fmt.Errorf("getting agent object: %w", err)
-	}
-
 	watcher, err := svc.kube.Watch(ctx, &gwintapi.GatewayAgentList{},
 		kclient.InNamespace(svc.cfg.Namespace), kclient.MatchingFields{"metadata.name": svc.cfg.Name})
 	if err != nil {
@@ -175,17 +176,21 @@ func (svc *Service) watchAgent(ctx context.Context) error {
 					if status, ok := status.FromError(errors.Unwrap(err)); ok {
 						if status.Code() == codes.Unavailable {
 							slog.Warn("Dataplane unavailable, will retry", "error", status.Message())
-
-							continue
+						} else {
+							slog.Warn("Dataplane error, will retry", "error", status.Message())
 						}
 
-						slog.Warn("Dataplane error, will retry", "error", status.Message())
+						if err := svc.resetStatus(ctx); err != nil {
+							return fmt.Errorf("resetting status: %w", err)
+						}
+
+						continue
 					}
 
 					return fmt.Errorf("handling agent: %w", err)
 				}
 
-				if err := svc.updateStatus(ctx); err != nil {
+				if err := svc.updateStatus(ctx, false); err != nil {
 					return fmt.Errorf("updating agent status (watch): %w", err)
 				}
 			case watch.Deleted:
@@ -208,17 +213,21 @@ func (svc *Service) watchAgent(ctx context.Context) error {
 				if status, ok := status.FromError(errors.Unwrap(err)); ok {
 					if status.Code() == codes.Unavailable {
 						slog.Warn("Dataplane unavailable, will retry", "error", status.Message())
-
-						continue
+					} else {
+						slog.Warn("Dataplane error, will retry", "error", status.Message())
 					}
 
-					slog.Warn("Dataplane error, will retry", "error", status.Message())
+					if err := svc.resetStatus(ctx); err != nil {
+						return fmt.Errorf("resetting status (enforcer): %w", err)
+					}
+
+					continue
 				}
 
 				return fmt.Errorf("enforcing config: %w", err)
 			}
 
-			if err := svc.updateStatus(ctx); err != nil {
+			if err := svc.updateStatus(ctx, false); err != nil {
 				return fmt.Errorf("updating agent status (enforcer): %w", err)
 			}
 		case <-statusTicker.C:
@@ -226,21 +235,32 @@ func (svc *Service) watchAgent(ctx context.Context) error {
 				return fmt.Errorf("collecting dataplane status: %w", err)
 			}
 
-			if err := svc.updateStatus(ctx); err != nil {
+			if err := svc.updateStatus(ctx, true); err != nil {
 				return fmt.Errorf("updating agent status (status): %w", err)
 			}
 		}
 	}
 }
 
-func (svc *Service) updateStatus(ctx context.Context) error {
+func (svc *Service) resetStatus(ctx context.Context) error {
+	slog.Info("Resetting agent status")
+
+	svc.status = gwintapi.GatewayAgentStatus{
+		AgentVersion: version.Version,
+	}
+
+	return svc.updateStatus(ctx, true)
+}
+
+func (svc *Service) updateStatus(ctx context.Context, notApplied bool) error {
 	changed := svc.curr.Status.LastAppliedGen != svc.curr.Generation || svc.curr.Status.AgentVersion != version.Version
 	changed = changed || !svc.curr.Status.State.LastCollectedTime.Equal(&svc.status.State.LastCollectedTime)
+	changed = changed || svc.status.LastAppliedGen == 0
 	if !changed {
 		return nil
 	}
 
-	if svc.curr.Status.LastAppliedGen != svc.curr.Generation || svc.curr.Status.AgentVersion != version.Version {
+	if !notApplied && svc.curr.Status.LastAppliedGen != svc.curr.Generation || svc.curr.Status.AgentVersion != version.Version {
 		svc.status.LastAppliedGen = svc.curr.Generation // it's important to use the original generation
 		svc.status.LastAppliedTime = kmetav1.Now()
 	}
