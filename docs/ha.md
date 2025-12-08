@@ -194,13 +194,13 @@ This choice is not definitive since fabric uses communities for other purposes.
 ```
    route-map FROM-SPINES permit 1
      match community 1:1
-     set local-preference 101
+     set local-preference 300
    route-map FROM-SPINES permit 2
      match community 1:2
-     set local-preference 102
-   route-map FROM-SPINES permit 2
+     set local-preference 200
+   route-map FROM-SPINES permit 3
      match community 1:3
-     set local-preference 103
+     set local-preference 100
 ```
 
 
@@ -219,3 +219,61 @@ Options to avoid this:
 * We may need to enforce this through some leader election protocol.
 * We may otherwise resort to BGP route dampening.
 * We may opt to a distinct solution based on conditional advertisement. In this case, gateways would advertise a prefix only if another (the primary) did not do that.
+
+## Initial implementation Example
+```yaml
+apiVersion: gateway.githedgehog.com/v1alpha1
+kind: GatewayGroup
+metadata:
+  name: gw-group-1
+spec:
+  mode: // active-active, active-backup -- future use
+```
+
+```yaml
+apiVersion: gateway.githedgehog.com/v1alpha1
+kind: Gateway
+metadata:
+  name: gw1
+spec:
+  groups:
+	 - name: gw-group-1
+      priority: 100 
+	 - name: gw-group-2
+      priority: 100
+```
+
+```yaml
+apiVersion: gateway.githedgehog.com/v1alpha1
+kind: Gateway
+metadata:
+  name: gw2
+spec:
+  groups:
+	 - name: gw-group-1
+      priority: 100 
+	 - name: gw-group-2
+      priority: 100
+```
+
+```yaml
+apiVersion: gateway.githedgehog.com/v1alpha1
+kind: Peering
+metadata:
+  name: vpc-1--vpc-2
+spec:
+  gatewayGroup: gw-group-1
+  peering:
+    vpc-1:
+      expose:
+        - ips:
+            - cidr: 10.1.1.0/24
+          as:
+            - cidr: 192.168.1.0/24
+    vpc-2:
+      expose:
+        - ips:
+            - cidr: 10.1.2.0/24
+          as:
+            - cidr: 192.168.2.0/24
+```
