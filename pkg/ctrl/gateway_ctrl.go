@@ -432,11 +432,13 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 	{
 		args := []string{
 			"--num-workers", fmt.Sprintf("%d", gw.Spec.Workers),
-			"--grpc-address", dataplaneAPIAddress,
 			"--cli-sock-path", filepath.Join(dataplaneRunMountPath, "cli.sock"),
 			"--cpi-sock-path", filepath.Join(frrRunMountPath, cpiSocket),
 			"--frr-agent-path", filepath.Join(frrRunMountPath, frrAgentSocket),
 			"--metrics-address", fmt.Sprintf("127.0.0.1:%d", r.cfg.DataplaneMetricsPort),
+		}
+		if !r.cfg.Agentless {
+			args = append(args, "--grpc-address", dataplaneAPIAddress)
 		}
 		if gw.Spec.Profiling.Enabled {
 			// args = append(args, "--pyroscope-url", "http://alloy-gw.fab.svc.cluster.local:4040")
