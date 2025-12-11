@@ -34,11 +34,13 @@ rules:
   resources:
   - gatewaygroups
   - gateways
-  - peerings
-  - vpcinfos
   verbs:
+  - create
+  - delete
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - gateway.githedgehog.com
@@ -49,6 +51,15 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - gateway.githedgehog.com
+  resources:
+  - peerings
+  - vpcinfos
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - gwint.githedgehog.com
   resources:
