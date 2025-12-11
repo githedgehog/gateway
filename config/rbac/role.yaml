@@ -34,6 +34,7 @@ rules:
   resources:
   - gatewaygroups
   - gateways
+  - peerings
   verbs:
   - create
   - delete
@@ -46,6 +47,7 @@ rules:
   - gateway.githedgehog.com
   resources:
   - gateways/status
+  - peerings/status
   - vpcinfos/status
   verbs:
   - get
@@ -54,7 +56,6 @@ rules:
 - apiGroups:
   - gateway.githedgehog.com
   resources:
-  - peerings
   - vpcinfos
   verbs:
   - get
