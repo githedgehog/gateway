@@ -151,8 +151,6 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 			},
 		}
 		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, defGwGr, func() error {
-			defGwGr.Spec = gwapi.GatewayGroupSpec{}
-
 			return nil
 		}); err != nil {
 			return kctrl.Result{}, fmt.Errorf("creating/updating default gateway group: %w", err)
