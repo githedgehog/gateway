@@ -4,7 +4,6 @@
 package v1alpha1
 
 import (
-	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -154,11 +153,7 @@ func (gw *Gateway) Default() {
 	}
 
 	slices.SortFunc(gw.Spec.Groups, func(a, b GatewayGroupMembership) int {
-		if a.Priority == b.Priority {
-			return cmp.Compare(a.Name, b.Name)
-		}
-
-		return -1 * cmp.Compare(a.Priority, b.Priority)
+		return strings.Compare(a.Name, b.Name)
 	})
 
 	if len(gw.Spec.Groups) == 0 {
