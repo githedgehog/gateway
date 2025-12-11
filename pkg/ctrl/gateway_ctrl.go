@@ -123,7 +123,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 	l := kctrllog.FromContext(ctx)
 
 	if req.Namespace != r.cfg.Namespace {
-		l.Info("Skipping Gateway in unexpected namespace", "name", req.Name, "namespace", req.Namespace)
+		l.Info("Skipping Gateway in unexpected namespace")
 
 		return kctrl.Result{}, nil
 	}
@@ -138,7 +138,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 	}
 
 	if gw.DeletionTimestamp != nil {
-		l.Info("Gateway is being deleted, skipping", "name", req.Name, "namespace", req.Namespace)
+		l.Info("Gateway is being deleted, skipping")
 
 		return kctrl.Result{}, nil
 	}
@@ -159,7 +159,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 		orig := gw.DeepCopy()
 		gw.Default()
 		if !reflect.DeepEqual(orig, gw) {
-			l.Info("Applying defaults to Gateway", "name", req.Name, "namespace", req.Namespace)
+			l.Info("Applying defaults to Gateway")
 
 			if err := r.Update(ctx, gw); err != nil {
 				return kctrl.Result{}, fmt.Errorf("updating gateway: %w", err)
@@ -167,7 +167,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 		}
 	}
 
-	l.Info("Reconciling Gateway", "name", req.Name, "namespace", req.Namespace)
+	l.Info("Reconciling Gateway")
 
 	vpcList := &gwapi.VPCInfoList{}
 	if err := r.List(ctx, vpcList); err != nil {
@@ -176,7 +176,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 	vpcs := map[string]gwintapi.VPCInfoData{}
 	for _, vpc := range vpcList.Items {
 		if !vpc.IsReady() {
-			l.Info("VPCInfo not ready, retrying", "name", vpc.Name, "namespace", vpc.Namespace)
+			l.Info("VPCInfo not ready, retrying")
 
 			// TODO consider ignoring non-ready VPCs
 			return kctrl.Result{Requeue: true, RequeueAfter: 1 * time.Second}, nil
