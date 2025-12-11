@@ -31,6 +31,27 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-gateway-githedgehog-com-v1alpha1-gatewaygroup
+  failurePolicy: Fail
+  name: mgatewaygroup.kb.io
+  rules:
+  - apiGroups:
+    - gateway.githedgehog.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - gatewaygroups
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-gateway-githedgehog-com-v1alpha1-peering
   failurePolicy: Fail
   name: mpeering.kb.io
@@ -93,6 +114,27 @@ webhooks:
     - DELETE
     resources:
     - gateways
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-gateway-githedgehog-com-v1alpha1-gatewaygroup
+  failurePolicy: Fail
+  name: vgatewaygroup.kb.io
+  rules:
+  - apiGroups:
+    - gateway.githedgehog.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - gatewaygroups
   sideEffects: None
 - admissionReviewVersions:
   - v1
