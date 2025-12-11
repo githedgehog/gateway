@@ -3883,7 +3883,6 @@ type GatewayConfig struct {
 	Device        *Device                `protobuf:"bytes,2,opt,name=device,proto3" json:"device,omitempty"`
 	Underlay      *Underlay              `protobuf:"bytes,3,opt,name=underlay,proto3" json:"underlay,omitempty"`
 	Overlay       *Overlay               `protobuf:"bytes,4,opt,name=overlay,proto3" json:"overlay,omitempty"`
-	GwName        string                 `protobuf:"bytes,5,opt,name=gw_name,json=gwName,proto3" json:"gw_name,omitempty"`
 	GwGroups      []*GatewayGroup        `protobuf:"bytes,6,rep,name=gw_groups,json=gwGroups,proto3" json:"gw_groups,omitempty"`
 	Communities   map[uint32]string      `protobuf:"bytes,7,rep,name=communities,proto3" json:"communities,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // priority to community map
 	unknownFields protoimpl.UnknownFields
@@ -3946,13 +3945,6 @@ func (x *GatewayConfig) GetOverlay() *Overlay {
 		return x.Overlay
 	}
 	return nil
-}
-
-func (x *GatewayConfig) GetGwName() string {
-	if x != nil {
-		return x.GwName
-	}
-	return ""
 }
 
 func (x *GatewayConfig) GetGwGroups() []*GatewayGroup {
@@ -4251,15 +4243,14 @@ const file_proto_dataplane_proto_rawDesc = "" +
 	"\x03eal\x18\x02 \x01(\v2\v.config.EalR\x03eal\x12#\n" +
 	"\x05ports\x18\x03 \x03(\v2\r.config.PortsR\x05ports\x12\x1a\n" +
 	"\bhostname\x18\x04 \x01(\tR\bhostname\x12/\n" +
-	"\atracing\x18\x05 \x01(\v2\x15.config.TracingConfigR\atracing\"\x86\x03\n" +
+	"\atracing\x18\x05 \x01(\v2\x15.config.TracingConfigR\atracing\"\xed\x02\n" +
 	"\rGatewayConfig\x12\x1e\n" +
 	"\n" +
 	"generation\x18\x01 \x01(\x03R\n" +
 	"generation\x12&\n" +
 	"\x06device\x18\x02 \x01(\v2\x0e.config.DeviceR\x06device\x12,\n" +
 	"\bunderlay\x18\x03 \x01(\v2\x10.config.UnderlayR\bunderlay\x12)\n" +
-	"\aoverlay\x18\x04 \x01(\v2\x0f.config.OverlayR\aoverlay\x12\x17\n" +
-	"\agw_name\x18\x05 \x01(\tR\x06gwName\x121\n" +
+	"\aoverlay\x18\x04 \x01(\v2\x0f.config.OverlayR\aoverlay\x121\n" +
 	"\tgw_groups\x18\x06 \x03(\v2\x14.config.GatewayGroupR\bgwGroups\x12H\n" +
 	"\vcommunities\x18\a \x03(\v2&.config.GatewayConfig.CommunitiesEntryR\vcommunities\x1a>\n" +
 	"\x10CommunitiesEntry\x12\x10\n" +
