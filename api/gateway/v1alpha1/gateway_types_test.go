@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.githedgehog.com/gateway/api/gateway/v1alpha1"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -60,6 +61,12 @@ func withObjs(base []kclient.Object, objs ...kclient.Object) []kclient.Object {
 
 func TestGatewayValidate(t *testing.T) {
 	base := []kclient.Object{
+		&v1alpha1.GatewayGroup{
+			ObjectMeta: kmetav1.ObjectMeta{
+				Name:      v1alpha1.DefaultGatewayGroup,
+				Namespace: "default",
+			},
+		},
 		withName("gw-2", &v1alpha1.Gateway{
 			Spec: v1alpha1.GatewaySpec{
 				ProtocolIP: "172.30.8.2/32",
