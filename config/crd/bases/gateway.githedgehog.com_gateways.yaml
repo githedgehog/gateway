@@ -22,10 +22,12 @@ spec:
   - additionalPrinterColumns:
     - jsonPath: .spec.protocolIP
       name: ProtoIP
-      priority: 1
       type: string
     - jsonPath: .spec.vtepIP
       name: VTEPIP
+      type: string
+    - jsonPath: .spec.groups
+      name: Groups
       priority: 1
       type: string
     - jsonPath: .metadata.creationTimestamp
