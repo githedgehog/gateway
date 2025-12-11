@@ -108,8 +108,9 @@ func buildDataplaneConfig(ag *gwintapi.GatewayAgent) (*dataplane.GatewayConfig, 
 	peerings := []*dataplane.VpcPeering{}
 	for peeringName, peering := range ag.Spec.Peerings {
 		p := &dataplane.VpcPeering{
-			Name: peeringName,
-			For:  []*dataplane.PeeringEntryFor{},
+			Name:         peeringName,
+			GatewayGroup: peering.GatewayGroup,
+			For:          []*dataplane.PeeringEntryFor{},
 		}
 
 		for vpcName, vpc := range peering.Peering {
@@ -222,6 +223,25 @@ func buildDataplaneConfig(ag *gwintapi.GatewayAgent) (*dataplane.GatewayConfig, 
 		tracing.Taglevel[tag] = pbLevel(level)
 	}
 
+	gwGroups := []*dataplane.GatewayGroup{}
+	for name, group := range ag.Spec.Groups {
+		members := []*dataplane.GatewayGroupMember{}
+		for _, member := range group.Members {
+			members = append(members, &dataplane.GatewayGroupMember{
+				Name:      member.Name,
+				Priority:  member.Priority,
+				Ipaddress: member.VTEPIP,
+			})
+		}
+		gwGroups = append(gwGroups, &dataplane.GatewayGroup{
+			Name:    name,
+			Members: members,
+		})
+	}
+	slices.SortFunc(gwGroups, func(a, b *dataplane.GatewayGroup) int {
+		return strings.Compare(a.Name, b.Name)
+	})
+
 	return &dataplane.GatewayConfig{
 		Generation: ag.Generation,
 		Device: &dataplane.Device{
@@ -229,6 +249,7 @@ func buildDataplaneConfig(ag *gwintapi.GatewayAgent) (*dataplane.GatewayConfig, 
 			Hostname: ag.Name,
 			Tracing:  tracing,
 		},
+		GwGroups: gwGroups,
 		Underlay: &dataplane.Underlay{
 			Vrfs: []*dataplane.VRF{
 				{
