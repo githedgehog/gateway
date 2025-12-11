@@ -4,12 +4,14 @@
 package v1alpha1
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
 	"net"
 	"net/netip"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -43,6 +45,8 @@ type GatewaySpec struct {
 	Profiling GatewayProfiling `json:"profiling,omitempty"`
 	// Workers defines the number of worker threads to use for dataplane
 	Workers uint8 `json:"workers,omitempty"`
+	// Groups is a list of group memberships for the gateway
+	Groups []GatewayGroupMembership `json:"groups,omitempty"`
 }
 
 // GatewayInterface defines the configuration for a gateway interface
@@ -97,6 +101,13 @@ type GatewayProfiling struct {
 	Enabled bool `json:"enabled,omitempty"`
 }
 
+type GatewayGroupMembership struct {
+	// Name is the name of the group to which the gateway belongs
+	Name string `json:"name,omitempty"`
+	// Priority is the priority of the gateway within the group
+	Priority uint32 `json:"priority,omitempty"`
+}
+
 // GatewayStatus defines the observed state of Gateway.
 type GatewayStatus struct{}
 
@@ -139,6 +150,20 @@ func (gw *Gateway) Default() {
 	}
 	if gw.Spec.Workers == 0 {
 		gw.Spec.Workers = 4
+	}
+
+	slices.SortFunc(gw.Spec.Groups, func(a, b GatewayGroupMembership) int {
+		if a.Priority == b.Priority {
+			return cmp.Compare(a.Name, b.Name)
+		}
+
+		return -1 * cmp.Compare(a.Priority, b.Priority)
+	})
+
+	if len(gw.Spec.Groups) == 0 {
+		gw.Spec.Groups = []GatewayGroupMembership{
+			{Name: DefaultGatewayGroup, Priority: 0},
+		}
 	}
 }
 
@@ -313,6 +338,17 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader) error {
 		}
 	}
 
+	if len(gw.Spec.Groups) == 0 {
+		return fmt.Errorf("at least one gateway group must be defined: %w", ErrInvalidGW)
+	}
+	usedGwGroups := map[string]bool{}
+	for _, gwGroup := range gw.Spec.Groups {
+		if usedGwGroups[gwGroup.Name] {
+			return fmt.Errorf("gateway %s group %s is duplicate: %w", gw.Name, gwGroup.Name, ErrInvalidGW)
+		}
+		usedGwGroups[gwGroup.Name] = true
+	}
+
 	// uniqueness checks
 	if kube != nil {
 		protocolIPs := map[netip.Addr]bool{}
@@ -342,6 +378,20 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader) error {
 		}
 		if _, exist := vtepIPs[vtepIP.Addr()]; exist {
 			return fmt.Errorf("gateway %s VTEP IP %s is already in use: %w", gw.Name, vtepIP, ErrInvalidGW)
+		}
+
+		gwGroupList := &GatewayGroupList{}
+		if err := kube.List(ctx, gwGroupList); err != nil {
+			return fmt.Errorf("listing gateway groups: %w", err)
+		}
+		gwGroups := map[string]bool{}
+		for _, gwGroup := range gwGroupList.Items {
+			gwGroups[gwGroup.Name] = true
+		}
+		for _, gwGroup := range gw.Spec.Groups {
+			if !gwGroups[gwGroup.Name] {
+				return fmt.Errorf("gateway %s group %s does not exist: %w", gw.Name, gwGroup.Name, ErrInvalidGW)
+			}
 		}
 	}
 

@@ -44,6 +44,10 @@ spec:
           spec:
             description: PeeringSpec defines the desired state of Peering.
             properties:
+              gatewayGroup:
+                description: GatewayGroup is the name of the gateway group that should
+                  process the peering
+                type: string
               peering:
                 additionalProperties:
                   properties:

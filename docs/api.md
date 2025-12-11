@@ -73,6 +73,23 @@ GatewayGroup is the Schema for the gatewaygroups API
 | `status` _[GatewayGroupStatus](#gatewaygroupstatus)_ |  |  |  |
 
 
+#### GatewayGroupMembership
+
+
+
+
+
+
+
+_Appears in:_
+- [GatewaySpec](#gatewayspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _string_ | Name is the name of the group to which the gateway belongs |  |  |
+| `priority` _integer_ | Priority is the priority of the gateway within the group |  |  |
+
+
 #### GatewayGroupSpec
 
 
@@ -196,6 +213,7 @@ _Appears in:_
 | `logs` _[GatewayLogs](#gatewaylogs)_ | Logs defines the configuration for logging levels |  |  |
 | `profiling` _[GatewayProfiling](#gatewayprofiling)_ | Profiling defines the configuration for profiling |  |  |
 | `workers` _integer_ | Workers defines the number of worker threads to use for dataplane |  |  |
+| `groups` _[GatewayGroupMembership](#gatewaygroupmembership) array_ | Groups is a list of group memberships for the gateway |  |  |
 
 
 #### GatewayStatus
@@ -330,6 +348,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
+| `gatewayGroup` _string_ | GatewayGroup is the name of the gateway group that should process the peering |  |  |
 | `peering` _object (keys:string, values:[PeeringEntry](#peeringentry))_ | Peerings is a map of peering entries for each VPC participating in the peering (keyed by VPC name) |  |  |
 
 
