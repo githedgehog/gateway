@@ -11,6 +11,7 @@ Package v1alpha1 contains API Schema definitions for the gateway v1alpha1 API gr
 
 ### Resource Types
 - [Gateway](#gateway)
+- [GatewayGroup](#gatewaygroup)
 - [Peering](#peering)
 - [VPCInfo](#vpcinfo)
 
@@ -51,6 +52,51 @@ _Appears in:_
 | `source` _string_ | Source is the source interface for the BGP neighbor configuration |  |  |
 | `ip` _string_ | IP is the IP address of the BGP neighbor |  |  |
 | `asn` _integer_ | ASN is the remote ASN of the BGP neighbor |  |  |
+
+
+#### GatewayGroup
+
+
+
+GatewayGroup is the Schema for the gatewaygroups API
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `gateway.githedgehog.com/v1alpha1` | | |
+| `kind` _string_ | `GatewayGroup` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[GatewayGroupSpec](#gatewaygroupspec)_ |  |  |  |
+| `status` _[GatewayGroupStatus](#gatewaygroupstatus)_ |  |  |  |
+
+
+#### GatewayGroupSpec
+
+
+
+GatewayGroupSpec defines the desired state of GatewayGroup
+
+
+
+_Appears in:_
+- [GatewayGroup](#gatewaygroup)
+
+
+
+#### GatewayGroupStatus
+
+
+
+GatewayGroupStatus defines the observed state of GatewayGroup.
+
+
+
+_Appears in:_
+- [GatewayGroup](#gatewaygroup)
+
 
 
 #### GatewayInterface
