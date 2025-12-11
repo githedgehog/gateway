@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"maps"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"time"
@@ -58,9 +59,9 @@ const (
 // +kubebuilder:rbac:groups=gwint.githedgehog.com,resources=gatewayagents/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=gwint.githedgehog.com,resources=gatewayagents/finalizers,verbs=update
 
-// +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=gateways,verbs=get;list;watch
+// +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=gateways,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=gateways/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=gatewaygroups,verbs=get;list;watch
+// +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=gatewaygroups,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos,verbs=get;list;watch
 // +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=peerings,verbs=get;list;watch
 
@@ -140,6 +141,32 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 		l.Info("Gateway is being deleted, skipping", "name", req.Name, "namespace", req.Namespace)
 
 		return kctrl.Result{}, nil
+	}
+
+	{
+		defGwGr := &gwapi.GatewayGroup{
+			ObjectMeta: kmetav1.ObjectMeta{
+				Name:      gwapi.DefaultGatewayGroup,
+				Namespace: gw.Namespace,
+			},
+		}
+		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, defGwGr, func() error {
+			defGwGr.Spec = gwapi.GatewayGroupSpec{}
+
+			return nil
+		}); err != nil {
+			return kctrl.Result{}, fmt.Errorf("creating/updating default gateway group: %w", err)
+		}
+
+		orig := gw.DeepCopy()
+		gw.Default()
+		if !reflect.DeepEqual(orig, gw) {
+			l.Info("Applying defaults to Gateway", "name", req.Name, "namespace", req.Namespace)
+
+			if err := r.Update(ctx, gw); err != nil {
+				return kctrl.Result{}, fmt.Errorf("updating gateway: %w", err)
+			}
+		}
 	}
 
 	l.Info("Reconciling Gateway", "name", req.Name, "namespace", req.Namespace)
