@@ -19,7 +19,14 @@ spec:
     singular: peering
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.gatewayGroup
+      name: GatewayGroup
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Peering is the Schema for the peerings API.
