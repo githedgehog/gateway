@@ -435,6 +435,11 @@ func TestBuildDataplaneConfig(t *testing.T) {
 				require.ErrorIs(t, err, errInvalidDPConfig)
 				return
 			}
+
+			if len(got.GwGroups) == 0 {
+				got.GwGroups = nil
+			}
+
 			require.NoError(t, err)
 			require.NotNil(t, got)
 			require.Equal(t, tt.outputCfg, got)

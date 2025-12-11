@@ -527,6 +527,7 @@ _Appears in:_
 | `gateway` _[GatewaySpec](#gatewayspec)_ |  |  |  |
 | `vpcs` _object (keys:string, values:[VPCInfoData](#vpcinfodata))_ |  |  |  |
 | `peerings` _object (keys:string, values:[PeeringSpec](#peeringspec))_ |  |  |  |
+| `groups` _object (keys:string, values:[GatewayGroupInfo](#gatewaygroupinfo))_ |  |  |  |
 
 
 #### GatewayAgentStatus
@@ -547,6 +548,40 @@ _Appears in:_
 | `lastAppliedGen` _integer_ | Generation of the last successful configuration application |  |  |
 | `lastHeartbeat` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#time-v1-meta)_ | Time of the last heartbeat from the agent |  |  |
 | `state` _[GatewayState](#gatewaystate)_ | State represents collected data from the dataplane API that includes FRR as well |  |  |
+
+
+#### GatewayGroupInfo
+
+
+
+
+
+
+
+_Appears in:_
+- [GatewayAgentSpec](#gatewayagentspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `members` _[GatewayGroupMember](#gatewaygroupmember) array_ |  |  |  |
+
+
+#### GatewayGroupMember
+
+
+
+
+
+
+
+_Appears in:_
+- [GatewayGroupInfo](#gatewaygroupinfo)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _string_ |  |  |  |
+| `priority` _integer_ |  |  |  |
+| `vtepIP` _string_ |  |  |  |
 
 
 #### GatewayState

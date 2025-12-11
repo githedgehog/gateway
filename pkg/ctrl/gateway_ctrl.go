@@ -4,6 +4,7 @@
 package ctrl
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"maps"
@@ -169,6 +170,40 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 
 	l.Info("Reconciling Gateway")
 
+	inGwGroups := map[string]bool{}
+	for _, gr := range gw.Spec.Groups {
+		inGwGroups[gr.Name] = true
+	}
+	gwGroups := map[string]gwintapi.GatewayGroupInfo{}
+	gws := &gwapi.GatewayList{}
+	if err := r.List(ctx, gws); err != nil {
+		return kctrl.Result{}, fmt.Errorf("listing gateways: %w", err)
+	}
+	for _, gw := range gws.Items {
+		for _, gr := range gw.Spec.Groups {
+			if !inGwGroups[gr.Name] {
+				continue
+			}
+
+			info := gwGroups[gr.Name]
+			info.Members = append(info.Members, gwintapi.GatewayGroupMember{
+				Name:     gw.Name,
+				Priority: gr.Priority,
+				VTEPIP:   gw.Spec.VTEPIP,
+			})
+			gwGroups[gr.Name] = info
+		}
+	}
+	for _, info := range gwGroups {
+		slices.SortFunc(info.Members, func(a, b gwintapi.GatewayGroupMember) int {
+			if a.Priority == b.Priority {
+				return strings.Compare(a.Name, b.Name)
+			}
+
+			return -1 * cmp.Compare(a.Priority, b.Priority)
+		})
+	}
+
 	vpcList := &gwapi.VPCInfoList{}
 	if err := r.List(ctx, vpcList); err != nil {
 		return kctrl.Result{}, fmt.Errorf("listing vpcinfos: %w", err)
@@ -224,6 +259,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 		gwAg.Spec.Gateway = gw.Spec
 		gwAg.Spec.VPCs = vpcs
 		gwAg.Spec.Peerings = peerings
+		gwAg.Spec.Groups = gwGroups
 
 		return nil
 	}); err != nil {
