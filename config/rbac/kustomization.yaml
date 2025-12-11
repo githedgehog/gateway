@@ -36,3 +36,10 @@ resources:
 - peering_viewer_role.yaml
 
 
+# For each CRD, "Admin", "Editor" and "Viewer" roles are scaffolded by
+# default, aiding admins in cluster management. Those roles are
+# not used by the gateway itself. You can comment the following lines
+# if you do not want those helpers be installed with your Project.
+- gateway_gatewaygroup_admin_role.yaml
+- gateway_gatewaygroup_editor_role.yaml
+- gateway_gatewaygroup_viewer_role.yaml
