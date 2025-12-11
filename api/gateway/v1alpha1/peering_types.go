@@ -86,6 +86,8 @@ type PeeringStatus struct{}
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hedgehog;hedgehog-gateway,shortName=peer
+// +kubebuilder:printcolumn:name="GatewayGroup",type=string,JSONPath=`.spec.gatewayGroup`,priority=0
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // Peering is the Schema for the peerings API.
 type Peering struct {
 	kmetav1.TypeMeta   `json:",inline"`
