@@ -49,6 +49,7 @@ func TestPeeringWithVpcsNoNAT(t *testing.T) {
 		ListLabelVPC("vpc1"): "true",
 		ListLabelVPC("vpc2"): "true",
 	}
+	ref.Spec.GatewayGroup = DefaultGatewayGroup
 
 	peering := common.DeepCopy()
 	peering.Default()
@@ -122,6 +123,7 @@ func TestPeeringWithMultipleItemsInAs(t *testing.T) {
 		ListLabelVPC("vpc1"): "true",
 		ListLabelVPC("vpc2"): "true",
 	}
+	ref.Spec.GatewayGroup = DefaultGatewayGroup
 
 	peering := common.DeepCopy()
 	peering.Default()
@@ -165,6 +167,7 @@ func TestPeeringWithStatelessNAT(t *testing.T) {
 		ListLabelVPC("vpc1"): "true",
 		ListLabelVPC("vpc2"): "true",
 	}
+	ref.Spec.GatewayGroup = DefaultGatewayGroup
 	ref.Spec.Peering["vpc2"].Expose[0].NAT = &PeeringNAT{
 		Stateless: &PeeringStatelessNAT{},
 	}
@@ -218,6 +221,7 @@ func TestPeeringWithStatefulNAT(t *testing.T) {
 		ListLabelVPC("vpc1"): "true",
 		ListLabelVPC("vpc2"): "true",
 	}
+	ref.Spec.GatewayGroup = DefaultGatewayGroup
 	ref.Spec.Peering["vpc1"].Expose[0].NAT = &PeeringNAT{
 		Stateful: &PeeringStatefulNAT{
 			IdleTimeout: kmetav1.Duration{Duration: time.Duration(2 * time.Minute)},
