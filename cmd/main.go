@@ -138,10 +138,16 @@ func run() error {
 	if err := ctrl.SetupVPCInfoReconcilerWith(mgr); err != nil {
 		return fmt.Errorf("setting up vpcinfo controller: %w", err)
 	}
+	if err := ctrl.SetupPeeringReconcilerWith(mgr); err != nil {
+		return fmt.Errorf("setting up peering controller: %w", err)
+	}
 
 	// Webhooks
 	if err := ctrl.SetupGatewayWebhookWith(mgr); err != nil {
 		return fmt.Errorf("setting up gateway webhook: %w", err)
+	}
+	if err := ctrl.SetupGatewayGroupWebhookWith(mgr); err != nil {
+		return fmt.Errorf("setting up gatewaygroup webhook: %w", err)
 	}
 	if err := ctrl.SetupPeeringWebhookWith(mgr); err != nil {
 		return fmt.Errorf("setting up peering webhook: %w", err)

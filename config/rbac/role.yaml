@@ -32,22 +32,35 @@ rules:
 - apiGroups:
   - gateway.githedgehog.com
   resources:
+  - gatewaygroups
   - gateways
   - peerings
-  - vpcinfos
   verbs:
+  - create
+  - delete
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - gateway.githedgehog.com
   resources:
   - gateways/status
+  - peerings/status
   - vpcinfos/status
   verbs:
   - get
   - patch
   - update
+- apiGroups:
+  - gateway.githedgehog.com
+  resources:
+  - vpcinfos
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - gwint.githedgehog.com
   resources:

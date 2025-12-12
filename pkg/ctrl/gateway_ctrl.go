@@ -4,10 +4,12 @@
 package ctrl
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"maps"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"time"
@@ -58,8 +60,9 @@ const (
 // +kubebuilder:rbac:groups=gwint.githedgehog.com,resources=gatewayagents/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=gwint.githedgehog.com,resources=gatewayagents/finalizers,verbs=update
 
-// +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=gateways,verbs=get;list;watch
+// +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=gateways,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=gateways/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=gatewaygroups,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=vpcinfos,verbs=get;list;watch
 // +kubebuilder:rbac:groups=gateway.githedgehog.com,resources=peerings,verbs=get;list;watch
 
@@ -121,7 +124,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 	l := kctrllog.FromContext(ctx)
 
 	if req.Namespace != r.cfg.Namespace {
-		l.Info("Skipping Gateway in unexpected namespace", "name", req.Name, "namespace", req.Namespace)
+		l.Info("Skipping Gateway in unexpected namespace")
 
 		return kctrl.Result{}, nil
 	}
@@ -136,12 +139,70 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 	}
 
 	if gw.DeletionTimestamp != nil {
-		l.Info("Gateway is being deleted, skipping", "name", req.Name, "namespace", req.Namespace)
+		l.Info("Gateway is being deleted, skipping")
 
 		return kctrl.Result{}, nil
 	}
 
-	l.Info("Reconciling Gateway", "name", req.Name, "namespace", req.Namespace)
+	{
+		defGwGr := &gwapi.GatewayGroup{
+			ObjectMeta: kmetav1.ObjectMeta{
+				Name:      gwapi.DefaultGatewayGroup,
+				Namespace: gw.Namespace,
+			},
+		}
+		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, defGwGr, func() error {
+			return nil
+		}); err != nil {
+			return kctrl.Result{}, fmt.Errorf("creating/updating default gateway group: %w", err)
+		}
+
+		orig := gw.DeepCopy()
+		gw.Default()
+		if !reflect.DeepEqual(orig, gw) {
+			l.Info("Applying defaults to Gateway")
+
+			if err := r.Update(ctx, gw); err != nil {
+				return kctrl.Result{}, fmt.Errorf("updating gateway: %w", err)
+			}
+		}
+	}
+
+	l.Info("Reconciling Gateway")
+
+	inGwGroups := map[string]bool{}
+	for _, gr := range gw.Spec.Groups {
+		inGwGroups[gr.Name] = true
+	}
+	gwGroups := map[string]gwintapi.GatewayGroupInfo{}
+	gws := &gwapi.GatewayList{}
+	if err := r.List(ctx, gws); err != nil {
+		return kctrl.Result{}, fmt.Errorf("listing gateways: %w", err)
+	}
+	for _, gw := range gws.Items {
+		for _, gr := range gw.Spec.Groups {
+			if !inGwGroups[gr.Name] {
+				continue
+			}
+
+			info := gwGroups[gr.Name]
+			info.Members = append(info.Members, gwintapi.GatewayGroupMember{
+				Name:     gw.Name,
+				Priority: gr.Priority,
+				VTEPIP:   gw.Spec.VTEPIP,
+			})
+			gwGroups[gr.Name] = info
+		}
+	}
+	for _, info := range gwGroups {
+		slices.SortFunc(info.Members, func(a, b gwintapi.GatewayGroupMember) int {
+			if a.Priority == b.Priority {
+				return strings.Compare(a.Name, b.Name)
+			}
+
+			return -1 * cmp.Compare(a.Priority, b.Priority)
+		})
+	}
 
 	vpcList := &gwapi.VPCInfoList{}
 	if err := r.List(ctx, vpcList); err != nil {
@@ -150,7 +211,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 	vpcs := map[string]gwintapi.VPCInfoData{}
 	for _, vpc := range vpcList.Items {
 		if !vpc.IsReady() {
-			l.Info("VPCInfo not ready, retrying", "name", vpc.Name, "namespace", vpc.Namespace)
+			l.Info("VPCInfo not ready, retrying")
 
 			// TODO consider ignoring non-ready VPCs
 			return kctrl.Result{Requeue: true, RequeueAfter: 1 * time.Second}, nil
@@ -198,6 +259,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 		gwAg.Spec.Gateway = gw.Spec
 		gwAg.Spec.VPCs = vpcs
 		gwAg.Spec.Peerings = peerings
+		gwAg.Spec.Groups = gwGroups
 
 		return nil
 	}); err != nil {

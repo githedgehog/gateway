@@ -49,7 +49,7 @@ func (r *VPCInfoReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 	}
 
 	if vpc.DeletionTimestamp != nil {
-		l.Info("VPCInfo is being deleted, skipping", "name", req.Name, "namespace", req.Namespace)
+		l.Info("VPCInfo is being deleted, skipping")
 
 		return kctrl.Result{}, nil
 	}
@@ -58,7 +58,7 @@ func (r *VPCInfoReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 		return kctrl.Result{}, nil
 	}
 
-	l.Info("Reconciling VPCInfo", "name", req.Name, "namespace", req.Namespace)
+	l.Info("Reconciling VPCInfo")
 
 	// TODO actually generate a unique ID in a reliable way
 	// this is a temporary solution, we should use a proper way of generating unique IDs
