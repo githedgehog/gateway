@@ -72,6 +72,10 @@ spec:
                 description: AgentVersion is the desired version of the gateway agent
                   to trigger generation changes on controller upgrades
                 type: string
+              communities:
+                additionalProperties:
+                  type: string
+                type: object
               gateway:
                 description: GatewaySpec defines the desired state of Gateway.
                 properties:

@@ -528,6 +528,7 @@ _Appears in:_
 | `vpcs` _object (keys:string, values:[VPCInfoData](#vpcinfodata))_ |  |  |  |
 | `peerings` _object (keys:string, values:[PeeringSpec](#peeringspec))_ |  |  |  |
 | `groups` _object (keys:string, values:[GatewayGroupInfo](#gatewaygroupinfo))_ |  |  |  |
+| `communities` _object (keys:string, values:string)_ |  |  |  |
 
 
 #### GatewayAgentStatus

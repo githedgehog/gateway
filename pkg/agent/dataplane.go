@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/netip"
 	"slices"
+	"strconv"
 	"strings"
 
 	"go.githedgehog.com/gateway-proto/pkg/dataplane"
@@ -242,6 +243,15 @@ func buildDataplaneConfig(ag *gwintapi.GatewayAgent) (*dataplane.GatewayConfig, 
 		return strings.Compare(a.Name, b.Name)
 	})
 
+	comms := map[uint32]string{}
+	for prioStr, comm := range ag.Spec.Communities {
+		prio, err := strconv.ParseUint(prioStr, 10, 32)
+		if err != nil {
+			return nil, fmt.Errorf("invalid community %s priority %s: %w", comm, prioStr, err)
+		}
+		comms[uint32(prio)] = comm
+	}
+
 	return &dataplane.GatewayConfig{
 		Generation: ag.Generation,
 		Device: &dataplane.Device{
@@ -249,7 +259,8 @@ func buildDataplaneConfig(ag *gwintapi.GatewayAgent) (*dataplane.GatewayConfig, 
 			Hostname: ag.Name,
 			Tracing:  tracing,
 		},
-		GwGroups: gwGroups,
+		GwGroups:    gwGroups,
+		Communities: comms,
 		Underlay: &dataplane.Underlay{
 			Vrfs: []*dataplane.VRF{
 				{

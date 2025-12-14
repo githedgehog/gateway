@@ -34,6 +34,7 @@ type GatewayAgentSpec struct {
 	VPCs         map[string]VPCInfoData       `json:"vpcs,omitempty"`
 	Peerings     map[string]gwapi.PeeringSpec `json:"peerings,omitempty"`
 	Groups       map[string]GatewayGroupInfo  `json:"groups,omitempty"`
+	Communities  map[string]string            `json:"communities,omitempty"`
 }
 
 // GatewayAgentStatus defines the observed state of GatewayAgent.
