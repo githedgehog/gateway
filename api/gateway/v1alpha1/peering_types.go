@@ -6,6 +6,7 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"maps"
 	"net/netip"
 	"slices"
@@ -247,7 +248,9 @@ func (p *Peering) Validate(ctx context.Context, kube kclient.Reader) error {
 		gwGroup := &GatewayGroup{}
 		if err := kube.Get(ctx, kclient.ObjectKey{Name: p.Spec.GatewayGroup, Namespace: p.Namespace}, gwGroup); err != nil {
 			if kapierrors.IsNotFound(err) {
-				return fmt.Errorf("gateway group %s not found", p.Spec.GatewayGroup) //nolint:err113
+				// TODO enable validation back after it's supplied by the fabricator
+				slog.Warn("Gateway group not found", "name", p.Spec.GatewayGroup)
+				// return fmt.Errorf("gateway group %s not found", p.Spec.GatewayGroup) //nolint:err113
 			}
 
 			return fmt.Errorf("failed to get gateway group %s: %w", p.Spec.GatewayGroup, err)
