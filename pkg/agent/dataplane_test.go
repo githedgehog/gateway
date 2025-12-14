@@ -76,6 +76,7 @@ func dpb(name string, f ...func(dp *dataplane.GatewayConfig)) *dataplane.Gateway
 				Taglevel: map[string]dataplane.LogLevel{},
 			},
 		},
+		Communities: map[uint32]string{},
 		Underlay: &dataplane.Underlay{
 			Vrfs: []*dataplane.VRF{
 				{
