@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/netip"
 	"regexp"
@@ -386,7 +387,9 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader) error {
 		}
 		for _, gwGroup := range gw.Spec.Groups {
 			if !gwGroups[gwGroup.Name] {
-				return fmt.Errorf("gateway %s group %s does not exist: %w", gw.Name, gwGroup.Name, ErrInvalidGW)
+				// TODO enable validation back after it's supplied by the fabricator
+				slog.Warn("Gateway group not found", "gateway", gw.Name, "group", gwGroup.Name)
+				// return fmt.Errorf("gateway group %s not found: %w", gwGroup.Name, ErrInvalidGW)
 			}
 		}
 	}
