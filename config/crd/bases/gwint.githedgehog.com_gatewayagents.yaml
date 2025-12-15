@@ -299,6 +299,12 @@ spec:
                 description: State represents collected data from the dataplane API
                   that includes FRR as well
                 properties:
+                  dataplane:
+                    description: Dataplane is the status of the dataplane
+                    properties:
+                      version:
+                        type: string
+                    type: object
                   frr:
                     description: FRR is the status of the FRR daemon
                     properties:
