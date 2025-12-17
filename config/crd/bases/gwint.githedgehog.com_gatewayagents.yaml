@@ -191,6 +191,10 @@ spec:
                             type: integer
                           vtepIP:
                             type: string
+                        required:
+                        - name
+                        - priority
+                        - vtepIP
                         type: object
                       type: array
                   type: object
