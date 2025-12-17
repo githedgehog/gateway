@@ -255,9 +255,7 @@ func buildDataplaneConfig(ag *gwintapi.GatewayAgent) (*dataplane.GatewayConfig, 
 	return &dataplane.GatewayConfig{
 		Generation: ag.Generation,
 		Device: &dataplane.Device{
-			Driver:   dataplane.PacketDriver_KERNEL,
-			Hostname: ag.Name,
-			Tracing:  tracing,
+			Tracing: tracing,
 		},
 		GwGroups:    gwGroups,
 		Communities: comms,

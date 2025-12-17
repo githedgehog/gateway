@@ -69,8 +69,6 @@ func dpb(name string, f ...func(dp *dataplane.GatewayConfig)) *dataplane.Gateway
 	dpCfgBase := &dataplane.GatewayConfig{
 		Generation: 0,
 		Device: &dataplane.Device{
-			Driver:   dataplane.PacketDriver_KERNEL,
-			Hostname: name,
 			Tracing: &dataplane.TracingConfig{
 				Default:  dataplane.LogLevel_INFO,
 				Taglevel: map[string]dataplane.LogLevel{},
