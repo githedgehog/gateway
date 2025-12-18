@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -233,4 +234,38 @@ func TestPeeringWithStatefulNAT(t *testing.T) {
 	assert.NoError(t, peering.Validate(t.Context(), nil), "peering should be valid")
 
 	assert.Equal(t, ref, peering)
+}
+
+func TestValidatePorts(t *testing.T) {
+	for _, tt := range []struct {
+		in    string
+		error bool
+	}{
+		{in: "", error: false},
+		{in: "80", error: false},
+		{in: "80-80", error: false},
+		{in: "80,443", error: false},
+		{in: "80,443,3000-3100", error: false},
+		{in: "80,443,3000-3100,", error: true},
+		{in: "80,443,3000-3100,8080", error: false},
+		{in: "  80  ", error: false},
+		{in: "  80  ,  443  ", error: false},
+		{in: "  80  ,  443  ,  3000-3100  ", error: false},
+		{in: "  80  ,443,3000-3100,8080", error: false},
+		{in: "80-79", error: true},
+		{in: "0", error: true},
+		{in: "65536", error: true},
+		{in: "1-65536", error: true},
+		{in: "0-80", error: true},
+		{in: "-80", error: true},
+		{in: "80-", error: true},
+		{in: "  -  80  ", error: true},
+		{in: "  80  -  ", error: true},
+		{in: "1-80,65536", error: true},
+	} {
+		t.Run(tt.in, func(t *testing.T) {
+			err := validatePorts(tt.in)
+			require.Equal(t, tt.error, err != nil)
+		})
+	}
 }

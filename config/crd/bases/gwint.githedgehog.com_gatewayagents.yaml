@@ -217,8 +217,17 @@ spec:
                                   items:
                                     properties:
                                       cidr:
+                                        description: CIDR to include, only one of
+                                          cidr, not can be set
                                         type: string
                                       not:
+                                        description: CIDR to exclude, only one of
+                                          cidr, not can be set
+                                        type: string
+                                      ports:
+                                        description: Port ranges (e.g. "80, 443, 3000-3100"),
+                                          used together with exactly one of cidr,
+                                          not
                                         type: string
                                     type: object
                                   type: array
@@ -226,10 +235,22 @@ spec:
                                   items:
                                     properties:
                                       cidr:
+                                        description: CIDR to include, only one of
+                                          cidr, not, vpcSubnet can be set
                                         type: string
                                       not:
+                                        description: CIDR to exclude, only one of
+                                          cidr, not, vpcSubnet can be set
+                                        type: string
+                                      ports:
+                                        description: Port ranges (e.g. "80, 443, 3000-3100"),
+                                          used together with exactly one of cidr,
+                                          not, vpcSubnet
                                         type: string
                                       vpcSubnet:
+                                        description: CIDR by VPC subnet name to include,
+                                          only one of cidr, not, vpcSubnet can be
+                                          set
                                         type: string
                                     type: object
                                   type: array
