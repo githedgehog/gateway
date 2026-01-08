@@ -324,6 +324,133 @@ spec:
                 description: State represents collected data from the dataplane API
                   that includes FRR as well
                 properties:
+                  bgp:
+                    description: BGP is BGP status derived from BMP/FRR, keyed by
+                      VRF
+                    properties:
+                      vrfs:
+                        additionalProperties:
+                          properties:
+                            neighbors:
+                              additionalProperties:
+                                properties:
+                                  connectionsDropped:
+                                    format: int64
+                                    type: integer
+                                  enabled:
+                                    type: boolean
+                                  establishedTransitions:
+                                    format: int64
+                                    type: integer
+                                  ipv4UnicastPrefixes:
+                                    properties:
+                                      received:
+                                        format: int32
+                                        type: integer
+                                      receivedPrePolicy:
+                                        format: int32
+                                        type: integer
+                                      sent:
+                                        format: int32
+                                        type: integer
+                                    type: object
+                                  ipv6UnicastPrefixes:
+                                    properties:
+                                      received:
+                                        format: int32
+                                        type: integer
+                                      receivedPrePolicy:
+                                        format: int32
+                                        type: integer
+                                      sent:
+                                        format: int32
+                                        type: integer
+                                    type: object
+                                  l2vpnEvpnPrefixes:
+                                    properties:
+                                      received:
+                                        format: int32
+                                        type: integer
+                                      receivedPrePolicy:
+                                        format: int32
+                                        type: integer
+                                      sent:
+                                        format: int32
+                                        type: integer
+                                    type: object
+                                  lastResetReason:
+                                    type: string
+                                  localAs:
+                                    format: int32
+                                    type: integer
+                                  messages:
+                                    properties:
+                                      received:
+                                        properties:
+                                          capability:
+                                            format: int64
+                                            type: integer
+                                          keepalive:
+                                            format: int64
+                                            type: integer
+                                          notification:
+                                            format: int64
+                                            type: integer
+                                          open:
+                                            format: int64
+                                            type: integer
+                                          routeRefresh:
+                                            format: int64
+                                            type: integer
+                                          update:
+                                            format: int64
+                                            type: integer
+                                        type: object
+                                      sent:
+                                        properties:
+                                          capability:
+                                            format: int64
+                                            type: integer
+                                          keepalive:
+                                            format: int64
+                                            type: integer
+                                          notification:
+                                            format: int64
+                                            type: integer
+                                          open:
+                                            format: int64
+                                            type: integer
+                                          routeRefresh:
+                                            format: int64
+                                            type: integer
+                                          update:
+                                            format: int64
+                                            type: integer
+                                        type: object
+                                    type: object
+                                  peerAs:
+                                    format: int32
+                                    type: integer
+                                  remoteRouterId:
+                                    type: string
+                                  sessionState:
+                                    description: BGPNeighborSessionState represents
+                                      the BGP FSM state for a neighbor.
+                                    enum:
+                                    - unset
+                                    - idle
+                                    - connect
+                                    - active
+                                    - open
+                                    - established
+                                    type: string
+                                type: object
+                              description: Neighbors keyed by an ip address string
+                              type: object
+                          type: object
+                        description: VRFs keyed by VRF name (e.g. "default", "vrfVvpc-1")
+                        type: object
+                    type: object
                   dataplane:
                     description: Dataplane is the status of the dataplane
                     properties:
