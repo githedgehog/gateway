@@ -63,7 +63,7 @@ type GatewayState struct {
 	VPCs map[string]VPCStatus `json:"vpcs,omitempty"`
 	// Peerings is the status of the VPCs peerings where key is VPC1->VPC2 and data is for one direction only
 	Peerings map[string]PeeringStatus `json:"peerings,omitempty"`
-	// BGP is BGP status derived from BMP/FRR, keyed by VRF
+	// BGP is BGP status
 	BGP BGPStatus `json:"bgp,omitempty"`
 }
 
@@ -127,9 +127,9 @@ const (
 
 type BGPNeighborStatus struct {
 	Enabled        bool   `json:"enabled,omitempty"`
-	LocalAS        uint32 `json:"localAs,omitempty"`
-	PeerAS         uint32 `json:"peerAs,omitempty"`
-	RemoteRouterID string `json:"remoteRouterId,omitempty"`
+	LocalAS        uint32 `json:"localAS,omitempty"`
+	PeerAS         uint32 `json:"peerAS,omitempty"`
+	RemoteRouterID string `json:"remoteRouterID,omitempty"`
 
 	SessionState           BGPNeighborSessionState `json:"sessionState,omitempty"`
 	ConnectionsDropped     uint64                  `json:"connectionsDropped,omitempty"`
@@ -139,7 +139,7 @@ type BGPNeighborStatus struct {
 	Messages            BGPMessages         `json:"messages,omitempty"`
 	IPv4UnicastPrefixes BGPNeighborPrefixes `json:"ipv4UnicastPrefixes,omitempty"`
 	IPv6UnicastPrefixes BGPNeighborPrefixes `json:"ipv6UnicastPrefixes,omitempty"`
-	L2VPNEVPNPrefixes   BGPNeighborPrefixes `json:"l2vpnEvpnPrefixes,omitempty"`
+	L2VPNEVPNPrefixes   BGPNeighborPrefixes `json:"l2VPNEVPNPrefixes,omitempty"`
 }
 
 type BGPMessages struct {

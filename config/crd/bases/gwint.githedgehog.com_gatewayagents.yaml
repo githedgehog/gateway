@@ -325,8 +325,7 @@ spec:
                   that includes FRR as well
                 properties:
                   bgp:
-                    description: BGP is BGP status derived from BMP/FRR, keyed by
-                      VRF
+                    description: BGP is BGP status
                     properties:
                       vrfs:
                         additionalProperties:
@@ -366,7 +365,7 @@ spec:
                                         format: int32
                                         type: integer
                                     type: object
-                                  l2vpnEvpnPrefixes:
+                                  l2VPNEVPNPrefixes:
                                     properties:
                                       received:
                                         format: int32
@@ -380,7 +379,7 @@ spec:
                                     type: object
                                   lastResetReason:
                                     type: string
-                                  localAs:
+                                  localAS:
                                     format: int32
                                     type: integer
                                   messages:
@@ -428,10 +427,10 @@ spec:
                                             type: integer
                                         type: object
                                     type: object
-                                  peerAs:
+                                  peerAS:
                                     format: int32
                                     type: integer
-                                  remoteRouterId:
+                                  remoteRouterID:
                                     type: string
                                   sessionState:
                                     description: BGPNeighborSessionState represents

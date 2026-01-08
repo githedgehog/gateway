@@ -569,9 +569,9 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `enabled` _boolean_ |  |  |  |
-| `localAs` _integer_ |  |  |  |
-| `peerAs` _integer_ |  |  |  |
-| `remoteRouterId` _string_ |  |  |  |
+| `localAS` _integer_ |  |  |  |
+| `peerAS` _integer_ |  |  |  |
+| `remoteRouterID` _string_ |  |  |  |
 | `sessionState` _[BGPNeighborSessionState](#bgpneighborsessionstate)_ |  |  | Enum: [unset idle connect active open established] <br /> |
 | `connectionsDropped` _integer_ |  |  |  |
 | `establishedTransitions` _integer_ |  |  |  |
@@ -579,7 +579,7 @@ _Appears in:_
 | `messages` _[BGPMessages](#bgpmessages)_ |  |  |  |
 | `ipv4UnicastPrefixes` _[BGPNeighborPrefixes](#bgpneighborprefixes)_ |  |  |  |
 | `ipv6UnicastPrefixes` _[BGPNeighborPrefixes](#bgpneighborprefixes)_ |  |  |  |
-| `l2vpnEvpnPrefixes` _[BGPNeighborPrefixes](#bgpneighborprefixes)_ |  |  |  |
+| `l2VPNEVPNPrefixes` _[BGPNeighborPrefixes](#bgpneighborprefixes)_ |  |  |  |
 
 
 #### BGPStatus
@@ -758,7 +758,7 @@ _Appears in:_
 | `frr` _[FRRStatus](#frrstatus)_ | FRR is the status of the FRR daemon |  |  |
 | `vpcs` _object (keys:string, values:[VPCStatus](#vpcstatus))_ | VPCs is the status of the VPCs where key is the vpc (vpcinfo) name |  |  |
 | `peerings` _object (keys:string, values:[PeeringStatus](#peeringstatus))_ | Peerings is the status of the VPCs peerings where key is VPC1->VPC2 and data is for one direction only |  |  |
-| `bgp` _[BGPStatus](#bgpstatus)_ | BGP is BGP status derived from BMP/FRR, keyed by VRF |  |  |
+| `bgp` _[BGPStatus](#bgpstatus)_ | BGP is BGP status |  |  |
 
 
 #### PeeringStatus
