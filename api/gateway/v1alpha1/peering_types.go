@@ -186,7 +186,10 @@ func (p *Peering) Validate(ctx context.Context, kube kclient.Reader) error {
 			continue
 		}
 		for _, expose := range vpc.Expose {
-			if len(expose.IPs) == 0 {
+			if expose.DefaultDestination && (len(expose.IPs) > 0 || len(expose.As) > 0 || expose.NAT != nil) {
+				return fmt.Errorf("default flag should be the only thing set in expose of VPC %s", name) //nolint:goerr113
+			}
+			if len(expose.IPs) == 0 && !expose.DefaultDestination {
 				return fmt.Errorf("at least one IP block must be specified in peering expose of VPC %s", name) //nolint:goerr113
 			}
 			for _, ip := range expose.IPs {
