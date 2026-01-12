@@ -4,12 +4,16 @@
 package v1alpha1
 
 import (
+	"slices"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestPeeringDefaultEmpty(t *testing.T) {
@@ -337,6 +341,173 @@ func TestValidateDefaultDestination(t *testing.T) {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func withName[T kclient.Object](name string, obj T) T {
+	obj.SetName(name)
+	obj.SetNamespace(kmetav1.NamespaceDefault)
+
+	return obj
+}
+
+func withObjs(base []kclient.Object, objs ...kclient.Object) []kclient.Object {
+	return append(slices.Clone(base), objs...)
+}
+
+func generatePeering(name string, f ...func(p *Peering)) *Peering {
+	peering := withName(name, &Peering{
+		Spec: PeeringSpec{
+			GatewayGroup: DefaultGatewayGroup,
+			Peering: map[string]*PeeringEntry{
+				"vpc-1": &PeeringEntry{
+					Expose: []PeeringEntryExpose{
+						{
+							IPs: []PeeringEntryIP{
+								{
+									CIDR: "10.0.1.0/24",
+								},
+							},
+						},
+					},
+				},
+				"vpc-2": &PeeringEntry{
+					Expose: []PeeringEntryExpose{
+						{
+							IPs: []PeeringEntryIP{
+								{
+									CIDR: "10.0.2.0/24",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	peering.Default()
+
+	for _, fn := range f {
+		fn(peering)
+	}
+
+	return peering
+}
+
+func TestValidateCIDROverlap(t *testing.T) {
+	basePeering := withName("base", &Peering{
+		Spec: PeeringSpec{
+			GatewayGroup: DefaultGatewayGroup,
+			Peering: map[string]*PeeringEntry{
+				"vpc-1": &PeeringEntry{
+					Expose: []PeeringEntryExpose{
+						{
+							IPs: []PeeringEntryIP{
+								{
+									CIDR: "10.0.0.0/24",
+								},
+							},
+						},
+					},
+				},
+				"vpc-45": &PeeringEntry{
+					Expose: []PeeringEntryExpose{
+						{
+							IPs: []PeeringEntryIP{
+								{
+									CIDR: "10.45.0.0/24",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	basePeering.Default()
+	gwGroup := withName(DefaultGatewayGroup, &GatewayGroup{
+		Spec: GatewayGroupSpec{},
+	})
+
+	baseObjs := []kclient.Object{basePeering, gwGroup}
+
+	tests := []struct {
+		name    string
+		peering *Peering
+		objs    []kclient.Object
+		err     bool
+	}{
+		{
+			name:    "no overlap",
+			peering: generatePeering("no-overlap"),
+			objs:    baseObjs,
+		},
+		{
+			name: "IP clash",
+			peering: generatePeering("ip-clash", func(p *Peering) {
+				p.Spec.Peering["vpc-1"].Expose = []PeeringEntryExpose{
+					{
+						IPs: []PeeringEntryIP{
+							{
+								CIDR: "10.0.0.0/24",
+							},
+						},
+					},
+				}
+			}),
+			objs: baseObjs,
+			err:  true,
+		},
+		{
+			name: "NAT clash",
+			peering: generatePeering("nat-clash", func(p *Peering) {
+				p.Spec.Peering["vpc-1"].Expose = []PeeringEntryExpose{
+					{
+						IPs: []PeeringEntryIP{
+							{
+								CIDR: "10.0.50.0/25",
+							},
+						},
+						As: []PeeringEntryAs{
+							{
+								CIDR: "10.0.0.0/25",
+							},
+						},
+					},
+				}
+			}),
+			objs: baseObjs,
+			err:  true,
+		},
+		{
+			name: "default does not clash",
+			peering: generatePeering("use-default", func(p *Peering) {
+				p.Spec.Peering["vpc-1"].Expose = []PeeringEntryExpose{
+					{
+						DefaultDestination: true,
+					},
+				}
+			}),
+			objs: baseObjs,
+		},
+	}
+	scheme := runtime.NewScheme()
+	require.NoError(t, AddToScheme(scheme), "should add gateway API to scheme")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := t.Context()
+			kube := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(tt.objs...).
+				Build()
+			tt.peering.Default()
+			actual := tt.peering.Validate(ctx, kube)
+			if tt.err {
+				require.Error(t, actual)
+			} else {
+				require.NoError(t, actual)
 			}
 		})
 	}
