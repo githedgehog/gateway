@@ -231,6 +231,8 @@ spec:
                                         type: string
                                     type: object
                                   type: array
+                                default:
+                                  type: boolean
                                 ips:
                                   items:
                                     properties:
