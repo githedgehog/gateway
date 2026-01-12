@@ -236,6 +236,112 @@ func TestPeeringWithStatefulNAT(t *testing.T) {
 	assert.Equal(t, ref, peering)
 }
 
+func TestValidateDefaultDestination(t *testing.T) {
+	for _, tt := range []struct {
+		name   string
+		expose PeeringEntryExpose
+		error  bool
+	}{
+		{
+			name: "default with nothing else",
+			expose: PeeringEntryExpose{
+				DefaultDestination: true,
+			},
+			error: false,
+		},
+		{
+			name: "default with IP",
+			expose: PeeringEntryExpose{
+				IPs: []PeeringEntryIP{
+					{
+						CIDR: "10.0.1.0/24",
+					},
+				},
+				DefaultDestination: true,
+			},
+			error: true,
+		},
+		{
+			name: "default with As",
+			expose: PeeringEntryExpose{
+				As: []PeeringEntryAs{
+					{
+						CIDR: "10.0.1.0/24",
+					},
+				},
+				DefaultDestination: true,
+			},
+			error: true,
+		},
+		{
+			name: "default with NAT",
+			expose: PeeringEntryExpose{
+				NAT: &PeeringNAT{
+					Stateless: &PeeringStatelessNAT{},
+				},
+				DefaultDestination: true,
+			},
+			error: true,
+		},
+		{
+			name: "IP with no default",
+			expose: PeeringEntryExpose{
+				IPs: []PeeringEntryIP{
+					{
+						CIDR: "10.0.1.0/24",
+					},
+				},
+				DefaultDestination: false,
+			},
+			error: false,
+		},
+		{
+			name: "no default and no IP",
+			expose: PeeringEntryExpose{
+				As: []PeeringEntryAs{
+					{
+						CIDR: "10.0.1.0/24",
+					},
+				},
+			},
+			error: true,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			peering := &Peering{
+				Spec: PeeringSpec{
+					GatewayGroup: DefaultGatewayGroup,
+					Peering: map[string]*PeeringEntry{
+						"vpc1": {
+							Expose: []PeeringEntryExpose{
+								tt.expose,
+							},
+						},
+						"vpc2": {
+							Expose: []PeeringEntryExpose{
+								{
+									IPs: []PeeringEntryIP{
+										{
+											CIDR: "10.10.1.0/24",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}
+			ctx := t.Context()
+			err := peering.Validate(ctx, nil)
+			if tt.error {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestValidatePorts(t *testing.T) {
 	for _, tt := range []struct {
 		in    string
