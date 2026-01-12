@@ -47,9 +47,10 @@ type PeeringNAT struct {
 }
 
 type PeeringEntryExpose struct {
-	IPs []PeeringEntryIP `json:"ips,omitempty"`
-	As  []PeeringEntryAs `json:"as,omitempty"`
-	NAT *PeeringNAT      `json:"nat,omitempty"`
+	IPs                []PeeringEntryIP `json:"ips,omitempty"`
+	As                 []PeeringEntryAs `json:"as,omitempty"`
+	NAT                *PeeringNAT      `json:"nat,omitempty"`
+	DefaultDestination bool             `json:"default,omitempty"`
 }
 
 type PeeringEntry struct {
