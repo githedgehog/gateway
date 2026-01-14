@@ -17,8 +17,6 @@ import (
 	gwapi "go.githedgehog.com/gateway/api/gateway/v1alpha1"
 	gwintapi "go.githedgehog.com/gateway/api/gwint/v1alpha1"
 	"go.githedgehog.com/gateway/api/meta"
-	"go.githedgehog.com/gateway/pkg/agent"
-	"go.githedgehog.com/gateway/pkg/version"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -33,7 +31,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	kctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	kyaml "sigs.k8s.io/yaml"
 )
 
 const (
@@ -51,9 +48,6 @@ const (
 	frrRootRunMountPath   = "/run/frr"
 	cpiSocket             = "hh/dataplane.sock"
 	frrAgentSocket        = "frr-agent.sock"
-
-	// TODO switch to unix socket: "unix://" + filepath.Join(dataplaneRunMountPath, dataplaneSocketName),
-	dataplaneAPIAddress = "[::1]:50051"
 )
 
 // +kubebuilder:rbac:groups=gwint.githedgehog.com,resources=gatewayagents,verbs=get;list;watch;create;update;patch;delete
@@ -255,11 +249,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 			return fmt.Errorf("setting controller reference: %w", err)
 		}
 
-		if !r.cfg.Agentless {
-			gwAg.Spec.AgentVersion = version.Version
-		} else {
-			gwAg.Spec.AgentVersion = ""
-		}
+		gwAg.Spec.AgentVersion = ""
 		gwAg.Spec.Gateway = gw.Spec
 		gwAg.Spec.VPCs = vpcs
 		gwAg.Spec.Peerings = peerings
@@ -382,107 +372,13 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 		Namespace: gw.Namespace,
 		Name:      entityName(gw.Name, "agent"),
 	}}
-	if !r.cfg.Agentless {
-		agCfgData, err := kyaml.Marshal(&meta.AgentConfig{
-			Name:             gw.Name,
-			Namespace:        gw.Namespace,
-			DataplaneAddress: dataplaneAPIAddress,
-		})
-		if err != nil {
-			return fmt.Errorf("marshalling agent config: %w", err)
-		}
 
-		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, agCM, func() error {
-			if err := ctrlutil.SetControllerReference(gw, agCM, r.Scheme(),
-				ctrlutil.WithBlockOwnerDeletion(false)); err != nil {
-				return fmt.Errorf("setting controller reference: %w", err)
-			}
+	if err := r.Client.Delete(ctx, agCM); err != nil && !kapierrors.IsNotFound(err) {
+		return fmt.Errorf("deleting gateway agent configmap: %w", err)
+	}
 
-			agCM.Data = map[string]string{
-				agent.ConfigFile: string(agCfgData),
-			}
-
-			return nil
-		}); err != nil {
-			return fmt.Errorf("creating or updating gateway agent configmap: %w", err)
-		}
-
-		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, agDS, func() error {
-			if err := ctrlutil.SetControllerReference(gw, agDS, r.Scheme(),
-				ctrlutil.WithBlockOwnerDeletion(false)); err != nil {
-				return fmt.Errorf("setting controller reference: %w", err)
-			}
-
-			labels := map[string]string{
-				"app.kubernetes.io/name": agDS.Name, // TODO
-			}
-
-			agDS.Spec = appv1.DaemonSetSpec{
-				Selector: &kmetav1.LabelSelector{
-					MatchLabels: labels,
-				},
-				Template: corev1.PodTemplateSpec{
-					ObjectMeta: kmetav1.ObjectMeta{
-						Labels: labels,
-					},
-					Spec: corev1.PodSpec{
-						NodeSelector:                  map[string]string{"kubernetes.io/hostname": gw.Name},
-						ServiceAccountName:            saName,
-						HostNetwork:                   true,
-						DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
-						TerminationGracePeriodSeconds: ptr.To(int64(10)),
-						Tolerations:                   r.cfg.Tolerations,
-						Containers: []corev1.Container{
-							{
-								Name:  "agent",
-								Image: r.cfg.AgentRef,
-								VolumeMounts: []corev1.VolumeMount{
-									{
-										Name:      dataplaneRunVolumeName,
-										MountPath: dataplaneRunMountPath,
-									},
-									{
-										Name:      configVolumeName,
-										MountPath: agent.ConfigDir,
-										ReadOnly:  true,
-									},
-								},
-								SecurityContext: &corev1.SecurityContext{
-									Privileged: ptr.To(true),
-									RunAsUser:  ptr.To(int64(0)),
-								},
-							},
-						},
-						Volumes: []corev1.Volume{
-							dataplaneSocketVolume,
-							{
-								Name: configVolumeName,
-								VolumeSource: corev1.VolumeSource{
-									ConfigMap: &corev1.ConfigMapVolumeSource{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: entityName(gw.Name, "agent"),
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-				UpdateStrategy: replaceUpdateStrategy,
-			}
-
-			return nil
-		}); err != nil {
-			return fmt.Errorf("creating or updating gateway agent daemonset: %w", err)
-		}
-	} else {
-		if err := r.Client.Delete(ctx, agCM); err != nil && !kapierrors.IsNotFound(err) {
-			return fmt.Errorf("deleting gateway agent configmap: %w", err)
-		}
-
-		if err := r.Client.Delete(ctx, agDS); err != nil && !kapierrors.IsNotFound(err) {
-			return fmt.Errorf("deleting gateway agent daemonset: %w", err)
-		}
+	if err := r.Client.Delete(ctx, agDS); err != nil && !kapierrors.IsNotFound(err) {
+		return fmt.Errorf("deleting gateway agent daemonset: %w", err)
 	}
 
 	frrSocketVolume := corev1.Volume{
@@ -502,9 +398,6 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 			"--cpi-sock-path", filepath.Join(frrRunMountPath, cpiSocket),
 			"--frr-agent-path", filepath.Join(frrRunMountPath, frrAgentSocket),
 			"--metrics-address", fmt.Sprintf("127.0.0.1:%d", r.cfg.DataplaneMetricsPort),
-		}
-		if !r.cfg.Agentless {
-			args = append(args, "--grpc-address", dataplaneAPIAddress)
 		}
 		if gw.Spec.Profiling.Enabled {
 			// args = append(args, "--pyroscope-url", "http://alloy-gw.fab.svc.cluster.local:4040")
@@ -565,11 +458,6 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 			}
 		}
 
-		dpSAName := ""
-		if r.cfg.Agentless {
-			dpSAName = saName
-		}
-
 		dpDS := &appv1.DaemonSet{ObjectMeta: kmetav1.ObjectMeta{
 			Namespace: gw.Namespace,
 			Name:      entityName(gw.Name, "dataplane"),
@@ -598,7 +486,7 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 						DNSPolicy:                     corev1.DNSClusterFirstWithHostNet,
 						TerminationGracePeriodSeconds: ptr.To(int64(10)),
 						Tolerations:                   r.cfg.Tolerations,
-						ServiceAccountName:            dpSAName,
+						ServiceAccountName:            saName,
 						InitContainers:                initContainers,
 						Containers: []corev1.Container{
 							{

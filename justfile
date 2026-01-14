@@ -43,7 +43,6 @@ gen: _kube_gen _crd_ref_docs
 # Build all artifacts
 build: gen _license_headers _gotools  && version
   {{go_linux_build}} -o ./bin/gateway ./cmd
-  {{go_linux_build}} -o ./bin/gateway-agent ./cmd/gateway-agent
   # Build complete
 
 oci_repo := "127.0.0.1:30000"
@@ -63,11 +62,11 @@ _helm-gateway: _kustomize _helm _helmify _kube_gen
   {{helm}} lint config/helm/gateway-{{version}}.tgz
 
 # Build all K8s artifacts (images and charts)
-kube-build: build (_docker-build "gateway") (_docker-build "gateway-agent") _helm-gateway-api _helm-gateway && version
+kube-build: build (_docker-build "gateway") _helm-gateway-api _helm-gateway && version
   # Docker images and Helm charts built
 
 # Push all K8s artifacts (images and charts)
-kube-push: kube-build (_helm-push "gateway-api") (_kube-push "gateway") (_docker-push "gateway-agent") && version
+kube-push: kube-build (_helm-push "gateway-api") (_kube-push "gateway") && version
   # Docker images and Helm charts pushed
 
 # Push all K8s artifacts (images and charts) and binaries
@@ -85,7 +84,7 @@ test-api: _helm-gateway-api
 
 # Patch deployment using the default kubeconfig (KUBECONFIG env or ~/.kube/config)
 patch: && version
-  kubectl -n fab patch fab/default --type=merge -p '{"spec":{"overrides":{"versions":{"gateway":{"api":"{{version}}","controller":"{{version}}","agent":"{{version}}"}}}}}'
+  kubectl -n fab patch fab/default --type=merge -p '{"spec":{"overrides":{"versions":{"gateway":{"api":"{{version}}","controller":"{{version}}"}}}}}'
 
 patch-dataplane dp_version:
   kubectl -n fab patch fab/default --type=merge -p '{"spec":{"overrides":{"versions":{"gateway":{"dataplane":"{{dp_version}}"}}}}}'
