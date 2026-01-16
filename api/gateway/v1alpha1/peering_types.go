@@ -291,6 +291,10 @@ func (p *Peering) Validate(ctx context.Context, kube kclient.Reader) error {
 				return fmt.Errorf("failed to list peerings for VPC %s: %w", vpc, err)
 			}
 			for _, other := range peeringList.Items {
+				if other.Name == p.Name {
+					continue
+				}
+
 				otherEntry, ok := other.Spec.Peering[vpc]
 				if !ok {
 					return fmt.Errorf("internal bug: could not find entry for VPC %s in peering with label for that VPC", vpc) //nolint:err113
