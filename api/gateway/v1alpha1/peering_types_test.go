@@ -406,7 +406,7 @@ func TestValidateCIDROverlap(t *testing.T) {
 						{
 							IPs: []PeeringEntryIP{
 								{
-									CIDR: "10.0.0.0/24",
+									CIDR: "10.0.1.0/24",
 								},
 							},
 						},
@@ -417,7 +417,7 @@ func TestValidateCIDROverlap(t *testing.T) {
 						{
 							IPs: []PeeringEntryIP{
 								{
-									CIDR: "10.45.0.0/24",
+									CIDR: "10.0.45.0/24",
 								},
 							},
 						},
@@ -447,11 +447,11 @@ func TestValidateCIDROverlap(t *testing.T) {
 		{
 			name: "IP clash",
 			peering: generatePeering("ip-clash", func(p *Peering) {
-				p.Spec.Peering["vpc-1"].Expose = []PeeringEntryExpose{
+				p.Spec.Peering["vpc-2"].Expose = []PeeringEntryExpose{
 					{
 						IPs: []PeeringEntryIP{
 							{
-								CIDR: "10.0.0.0/24",
+								CIDR: "10.0.45.0/24",
 							},
 						},
 					},
@@ -463,16 +463,16 @@ func TestValidateCIDROverlap(t *testing.T) {
 		{
 			name: "NAT clash",
 			peering: generatePeering("nat-clash", func(p *Peering) {
-				p.Spec.Peering["vpc-1"].Expose = []PeeringEntryExpose{
+				p.Spec.Peering["vpc-2"].Expose = []PeeringEntryExpose{
 					{
 						IPs: []PeeringEntryIP{
 							{
-								CIDR: "10.0.50.0/25",
+								CIDR: "10.0.2.0/25",
 							},
 						},
 						As: []PeeringEntryAs{
 							{
-								CIDR: "10.0.0.0/25",
+								CIDR: "10.0.45.0/25",
 							},
 						},
 					},
@@ -480,6 +480,26 @@ func TestValidateCIDROverlap(t *testing.T) {
 			}),
 			objs: baseObjs,
 			err:  true,
+		},
+		{
+			name: "NAT does not clash",
+			peering: generatePeering("nat-does-not-clash", func(p *Peering) {
+				p.Spec.Peering["vpc-2"].Expose = []PeeringEntryExpose{
+					{
+						IPs: []PeeringEntryIP{
+							{
+								CIDR: "10.0.2.0/25",
+							},
+						},
+						As: []PeeringEntryAs{
+							{
+								CIDR: "10.0.3.0/25",
+							},
+						},
+					},
+				}
+			}),
+			objs: baseObjs,
 		},
 		{
 			name: "default does not clash",
