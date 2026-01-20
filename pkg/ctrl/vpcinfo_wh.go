@@ -26,10 +26,9 @@ func SetupVPCInfoWebhookWith(mgr kctrl.Manager) error {
 		Reader: mgr.GetClient(),
 	}
 
-	if err := kctrl.NewWebhookManagedBy(mgr).
-		For(&gwapi.VPCInfo{}).
-		WithDefaulter(FromTypedDefaulter(w)).
-		WithValidator(FromTypedValidator(w)).
+	if err := kctrl.NewWebhookManagedBy(mgr, &gwapi.VPCInfo{}).
+		WithDefaulter(w).
+		WithValidator(w).
 		Complete(); err != nil {
 		return fmt.Errorf("creating webhook: %w", err) //nolint:goerr113
 	}
@@ -37,21 +36,20 @@ func SetupVPCInfoWebhookWith(mgr kctrl.Manager) error {
 	return nil
 }
 
-func (w *VPCInfoWebhook) Default(_ context.Context, obj *gwapi.VPCInfo) error {
-	obj.Default()
+func (w *VPCInfoWebhook) Default(_ context.Context, vpc *gwapi.VPCInfo) error {
+	vpc.Default()
 
 	return nil
 }
 
-func (w *VPCInfoWebhook) ValidateCreate(ctx context.Context, obj *gwapi.VPCInfo) (admission.Warnings, error) {
-	return nil, obj.Validate(ctx, w.Reader) //nolint:wrapcheck
+func (w *VPCInfoWebhook) ValidateCreate(ctx context.Context, vpc *gwapi.VPCInfo) (admission.Warnings, error) {
+	return nil, vpc.Validate(ctx, w.Reader) //nolint:wrapcheck
 }
 
-func (w *VPCInfoWebhook) ValidateUpdate(ctx context.Context, oldObj *gwapi.VPCInfo, newObj *gwapi.VPCInfo) (admission.Warnings, error) {
+func (w *VPCInfoWebhook) ValidateUpdate(ctx context.Context, _ *gwapi.VPCInfo, newVPC *gwapi.VPCInfo) (admission.Warnings, error) {
 	// TODO validate diff between oldObj and newObj if needed
-	_ = oldObj
 
-	return nil, newObj.Validate(ctx, w.Reader) //nolint:wrapcheck
+	return nil, newVPC.Validate(ctx, w.Reader) //nolint:wrapcheck
 }
 
 func (w *VPCInfoWebhook) ValidateDelete(_ context.Context, _ *gwapi.VPCInfo) (admission.Warnings, error) {

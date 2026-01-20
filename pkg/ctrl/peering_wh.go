@@ -26,10 +26,9 @@ func SetupPeeringWebhookWith(mgr kctrl.Manager) error {
 		Reader: mgr.GetClient(),
 	}
 
-	if err := kctrl.NewWebhookManagedBy(mgr).
-		For(&gwapi.Peering{}).
-		WithDefaulter(FromTypedDefaulter(w)).
-		WithValidator(FromTypedValidator(w)).
+	if err := kctrl.NewWebhookManagedBy(mgr, &gwapi.Peering{}).
+		WithDefaulter(w).
+		WithValidator(w).
 		Complete(); err != nil {
 		return fmt.Errorf("creating webhook: %w", err) //nolint:goerr113
 	}
@@ -37,21 +36,20 @@ func SetupPeeringWebhookWith(mgr kctrl.Manager) error {
 	return nil
 }
 
-func (w *PeeringWebhook) Default(_ context.Context, obj *gwapi.Peering) error {
-	obj.Default()
+func (w *PeeringWebhook) Default(_ context.Context, peer *gwapi.Peering) error {
+	peer.Default()
 
 	return nil
 }
 
-func (w *PeeringWebhook) ValidateCreate(ctx context.Context, obj *gwapi.Peering) (admission.Warnings, error) {
-	return nil, obj.Validate(ctx, w.Reader) //nolint:wrapcheck
+func (w *PeeringWebhook) ValidateCreate(ctx context.Context, peer *gwapi.Peering) (admission.Warnings, error) {
+	return nil, peer.Validate(ctx, w.Reader) //nolint:wrapcheck
 }
 
-func (w *PeeringWebhook) ValidateUpdate(ctx context.Context, oldObj *gwapi.Peering, newObj *gwapi.Peering) (admission.Warnings, error) {
+func (w *PeeringWebhook) ValidateUpdate(ctx context.Context, _ *gwapi.Peering, newPeer *gwapi.Peering) (admission.Warnings, error) {
 	// TODO validate diff between oldObj and newObj if needed
-	_ = oldObj
 
-	return nil, newObj.Validate(ctx, w.Reader) //nolint:wrapcheck
+	return nil, newPeer.Validate(ctx, w.Reader) //nolint:wrapcheck
 }
 
 func (w *PeeringWebhook) ValidateDelete(_ context.Context, _ *gwapi.Peering) (admission.Warnings, error) {

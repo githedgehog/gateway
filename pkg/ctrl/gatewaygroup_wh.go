@@ -26,10 +26,9 @@ func SetupGatewayGroupWebhookWith(mgr kctrl.Manager) error {
 		Reader: mgr.GetClient(),
 	}
 
-	if err := kctrl.NewWebhookManagedBy(mgr).
-		For(&gwapi.GatewayGroup{}).
-		WithDefaulter(FromTypedDefaulter(w)).
-		WithValidator(FromTypedValidator(w)).
+	if err := kctrl.NewWebhookManagedBy(mgr, &gwapi.GatewayGroup{}).
+		WithDefaulter(w).
+		WithValidator(w).
 		Complete(); err != nil {
 		return fmt.Errorf("creating webhook: %w", err) //nolint:goerr113
 	}
@@ -37,21 +36,20 @@ func SetupGatewayGroupWebhookWith(mgr kctrl.Manager) error {
 	return nil
 }
 
-func (w *GatewayGroupWebhook) Default(_ context.Context, obj *gwapi.GatewayGroup) error {
-	obj.Default()
+func (w *GatewayGroupWebhook) Default(_ context.Context, gwGr *gwapi.GatewayGroup) error {
+	gwGr.Default()
 
 	return nil
 }
 
-func (w *GatewayGroupWebhook) ValidateCreate(ctx context.Context, obj *gwapi.GatewayGroup) (admission.Warnings, error) {
-	return nil, obj.Validate(ctx, w.Reader) //nolint:wrapcheck
+func (w *GatewayGroupWebhook) ValidateCreate(ctx context.Context, gwGr *gwapi.GatewayGroup) (admission.Warnings, error) {
+	return nil, gwGr.Validate(ctx, w.Reader) //nolint:wrapcheck
 }
 
-func (w *GatewayGroupWebhook) ValidateUpdate(ctx context.Context, oldObj *gwapi.GatewayGroup, newObj *gwapi.GatewayGroup) (admission.Warnings, error) {
+func (w *GatewayGroupWebhook) ValidateUpdate(ctx context.Context, _ *gwapi.GatewayGroup, newGwGr *gwapi.GatewayGroup) (admission.Warnings, error) {
 	// TODO validate diff between oldObj and newObj if needed
-	_ = oldObj
 
-	return nil, newObj.Validate(ctx, w.Reader) //nolint:wrapcheck
+	return nil, newGwGr.Validate(ctx, w.Reader) //nolint:wrapcheck
 }
 
 func (w *GatewayGroupWebhook) ValidateDelete(_ context.Context, _ *gwapi.GatewayGroup) (admission.Warnings, error) {
