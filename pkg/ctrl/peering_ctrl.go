@@ -62,7 +62,7 @@ func (r *PeeringReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 		defGwGr := &gwapi.GatewayGroup{
 			ObjectMeta: kmetav1.ObjectMeta{
 				Name:      gwapi.DefaultGatewayGroup,
-				Namespace: peering.Namespace,
+				Namespace: kmetav1.NamespaceDefault,
 			},
 		}
 		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, defGwGr, func() error {
