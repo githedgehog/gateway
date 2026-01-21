@@ -595,7 +595,8 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 								Args: []string{
 									"set -ex && " +
 										"chown -R frr:frr /run/frr/ && chmod -R 760 /run/frr && " +
-										"mkdir -p /var/run/frr/hh && chown -R frr:frr /var/run/frr/ && chmod -R 760 /var/run/frr",
+										"mkdir -p /var/run/frr/hh && chown -R frr:frr /var/run/frr/ && chmod -R 760 /var/run/frr &&" +
+										"rm -f /var/run/frr/*.pid /var/run/frr/*.sock /var/run/frr/*.vty /var/run/frr/*.api /var/run/frr/*.started",
 								},
 								SecurityContext: &corev1.SecurityContext{
 									Privileged: ptr.To(true),
