@@ -615,6 +615,23 @@ _Appears in:_
 | `neighbors` _object (keys:string, values:[BGPNeighborStatus](#bgpneighborstatus))_ | Neighbors keyed by an ip address string |  |  |
 
 
+#### BmpConfig
+
+
+
+
+
+
+
+_Appears in:_
+- [GatewayAgentSpec](#gatewayagentspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `address` _string_ | Address is the bind address for the BMP server in "IP:PORT" form.<br />Examples: "0.0.0.0:5000", "[::]:5000" |  | Pattern: `^(\[[0-9a-fA-F:]+\]\|([0-9]\{1,3\}\.)\{3\}[0-9]\{1,3\}\|[a-zA-Z0-9\.\-]+):[0-9]\{1,5\}$` <br /> |
+| `intervalMS` _integer_ | IntervalMS is periodic interval for housekeeping/flush in milliseconds. |  | Minimum: 1 <br /> |
+
+
 #### DataplaneStatus
 
 
@@ -685,6 +702,7 @@ _Appears in:_
 | `peerings` _object (keys:string, values:[PeeringSpec](#peeringspec))_ |  |  |  |
 | `groups` _object (keys:string, values:[GatewayGroupInfo](#gatewaygroupinfo))_ |  |  |  |
 | `communities` _object (keys:string, values:string)_ |  |  |  |
+| `bmp` _[BmpConfig](#bmpconfig)_ |  |  |  |
 
 
 #### GatewayAgentStatus

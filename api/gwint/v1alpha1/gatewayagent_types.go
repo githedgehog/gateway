@@ -26,6 +26,17 @@ type GatewayGroupMember struct {
 	VTEPIP   string `json:"vtepIP"`
 }
 
+type BmpConfig struct {
+	// Address is the bind address for the BMP server in "IP:PORT" form.
+	// Examples: "0.0.0.0:5000", "[::]:5000"
+	// +kubebuilder:validation:Pattern=`^(\[[0-9a-fA-F:]+\]|([0-9]{1,3}\.){3}[0-9]{1,3}|[a-zA-Z0-9\.\-]+):[0-9]{1,5}$`
+	Address string `json:"address,omitempty"`
+
+	// IntervalMS is periodic interval for housekeeping/flush in milliseconds.
+	// +kubebuilder:validation:Minimum=1
+	IntervalMS uint64 `json:"intervalMS,omitempty"`
+}
+
 // GatewayAgentSpec defines the desired state of GatewayAgent.
 type GatewayAgentSpec struct {
 	// AgentVersion is the desired version of the gateway agent to trigger generation changes on controller upgrades
@@ -35,6 +46,7 @@ type GatewayAgentSpec struct {
 	Peerings     map[string]gwapi.PeeringSpec `json:"peerings,omitempty"`
 	Groups       map[string]GatewayGroupInfo  `json:"groups,omitempty"`
 	Communities  map[string]string            `json:"communities,omitempty"`
+	BMP          BmpConfig                    `json:"bmp,omitempty"`
 }
 
 // GatewayAgentStatus defines the observed state of GatewayAgent.
