@@ -76,6 +76,13 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
+              config:
+                properties:
+                  fabricBFD:
+                    description: FabricBFD defines if fabric-facing links should be
+                      configured with BFD
+                    type: boolean
+                type: object
               gateway:
                 description: GatewaySpec defines the desired state of Gateway.
                 properties:

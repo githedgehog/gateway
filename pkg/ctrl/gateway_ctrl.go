@@ -254,6 +254,9 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 		gwAg.Spec.VPCs = vpcs
 		gwAg.Spec.Peerings = peerings
 		gwAg.Spec.Groups = gwGroups
+		gwAg.Spec.Config = gwintapi.GatewayAgentSpecConfig{
+			FabricBFD: r.cfg.FabricBFD,
+		}
 
 		return nil
 	}); err != nil {
