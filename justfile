@@ -72,15 +72,24 @@ kube-push: kube-build (_helm-push "gateway-api") (_kube-push "gateway") && versi
 # Push all K8s artifacts (images and charts) and binaries
 push: kube-push && version
 
+_test_api_kind := "gw-api"
+
 # Install API on a kind cluster and wait for CRDs to be ready
-test-api: _helm-gateway-api
-    kind export kubeconfig --name kind || kind create cluster --name kind
-    kind export kubeconfig --name kind
+test-api: _helm _helm-gateway-api
+    kind export kubeconfig --name {{_test_api_kind}}
     {{helm}} install -n default gateway-api config/helm/gateway-api-{{version}}.tgz
     sleep 10
     kubectl wait --for condition=established --timeout=60s crd/peerings.gateway.githedgehog.com
     kubectl get crd | grep gateway
-    kind delete cluster --name kind
+
+test-api-auto: _kind_prep test-api _kind_cleanup
+
+_kind_prep:
+    kind export kubeconfig --name {{_test_api_kind}} || kind delete cluster --name {{_test_api_kind}}
+    kind create cluster --name {{_test_api_kind}}
+
+_kind_cleanup:
+    kind delete cluster --name {{_test_api_kind}}
 
 # Patch deployment using the default kubeconfig (KUBECONFIG env or ~/.kube/config)
 patch: && version
