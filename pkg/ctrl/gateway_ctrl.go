@@ -497,6 +497,9 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 			"--cpi-sock-path", filepath.Join(frrRunMountPath, cpiSocket),
 			"--frr-agent-path", filepath.Join(frrRunMountPath, frrAgentSocket),
 			"--metrics-address", fmt.Sprintf("127.0.0.1:%d", r.cfg.DataplaneMetricsPort),
+			"--bmp-enable",
+			"--bmp-address", "127.0.0.1:5000", // TODO: make it available via config
+			"--bmp-interval", "10000",
 		}
 		if gw.Spec.Profiling.Enabled {
 			// args = append(args, "--pyroscope-url", "http://alloy-gw.fab.svc.cluster.local:4040")
