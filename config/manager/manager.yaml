@@ -96,10 +96,22 @@ spec:
             - name: config
               mountPath: /etc/hedgehog/gateway-ctrl
               readOnly: true
+            - name: fab-ca
+              mountPath: /ca
+              readOnly: true
+            - name: creds
+              mountPath: /creds
+              readOnly: true
       volumes:
         - name: config
           configMap:
             # TODO it shouldn't be static, prefixName should be used?
             name: gateway-ctrl-config
+        - name: fab-ca
+          configMap:
+            name: fab-ca # TODO pass using values
+        - name: creds
+          secret:
+            secretName: registry-user-reader-docker # TODO pass using values
       serviceAccountName: ctrl
       terminationGracePeriodSeconds: 10

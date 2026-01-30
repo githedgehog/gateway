@@ -19,11 +19,13 @@ import (
 
 type GatewayWebhook struct {
 	kclient.Reader
+	val *Validator
 }
 
-func SetupGatewayWebhookWith(mgr kctrl.Manager) error {
+func SetupGatewayWebhookWith(mgr kctrl.Manager, val *Validator) error {
 	w := &GatewayWebhook{
 		Reader: mgr.GetClient(),
+		val:    val,
 	}
 
 	if err := kctrl.NewWebhookManagedBy(mgr, &gwapi.Gateway{}).
