@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"log/slog"
@@ -17,6 +18,10 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
+	"go.githedgehog.com/gateway/api/meta"
+	"go.githedgehog.com/gateway/pkg/ctrl"
+	"go.githedgehog.com/gateway/pkg/version"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -27,13 +32,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	kyaml "sigs.k8s.io/yaml"
 
-	"go.githedgehog.com/gateway/pkg/ctrl"
-	"go.githedgehog.com/gateway/pkg/version"
-
 	gatewayv1alpha1 "go.githedgehog.com/gateway/api/gateway/v1alpha1"
 	gwintv1alpha1 "go.githedgehog.com/gateway/api/gwint/v1alpha1"
-	"go.githedgehog.com/gateway/api/meta"
 	// +kubebuilder:scaffold:imports
+)
+
+const (
+	CAPath    = "/ca/ca.crt"
+	CredsPath = "/creds/" + corev1.DockerConfigJsonKey
+	CacheDir  = "/cache/v1"
 )
 
 var scheme = runtime.NewScheme()
@@ -82,6 +89,13 @@ func run() error {
 	cfg := &meta.GatewayCtrlConfig{}
 	if err := kyaml.Unmarshal(cfgData, cfg); err != nil {
 		return fmt.Errorf("unmarshalling config file: %w", err)
+	}
+
+	ctx, close := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer close()
+	validator, err := ctrl.NewValidator(ctx, CredsPath, CAPath, cfg.DataplaneValidatorRef, cfg.DataplaneValidatorTag)
+	if err != nil {
+		return fmt.Errorf("creating validator: %w", err)
 	}
 
 	// Disabling http/2 will prevent from being vulnerable to the HTTP/2 Stream Cancellation and Rapid Reset CVEs.
@@ -143,7 +157,7 @@ func run() error {
 	}
 
 	// Webhooks
-	if err := ctrl.SetupGatewayWebhookWith(mgr); err != nil {
+	if err := ctrl.SetupGatewayWebhookWith(mgr, validator); err != nil {
 		return fmt.Errorf("setting up gateway webhook: %w", err)
 	}
 	if err := ctrl.SetupGatewayGroupWebhookWith(mgr); err != nil {
