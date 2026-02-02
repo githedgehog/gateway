@@ -247,32 +247,8 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 		comms[strconv.FormatUint(uint64(id), 10)] = comm
 	}
 
-	// TODO remove it after dataplane is switched over to using default namespace
-	gwAg := &gwintapi.GatewayAgent{ObjectMeta: kmetav1.ObjectMeta{Namespace: gw.Namespace, Name: gw.Name}}
-	if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, gwAg, func() error {
-		// TODO consider blocking owner deletion, would require foregroundDeletion finalizer on the owner
-		if err := ctrlutil.SetControllerReference(gw, gwAg, r.Scheme(),
-			ctrlutil.WithBlockOwnerDeletion(false)); err != nil {
-			return fmt.Errorf("setting controller reference: %w", err)
-		}
-
-		gwAg.Spec.AgentVersion = ""
-		gwAg.Spec.Gateway = gw.Spec
-		gwAg.Spec.VPCs = vpcs
-		gwAg.Spec.Peerings = peerings
-		gwAg.Spec.Groups = gwGroups
-		gwAg.Spec.Communities = comms
-		gwAg.Spec.Config = gwintapi.GatewayAgentSpecConfig{
-			FabricBFD: r.cfg.FabricBFD,
-		}
-
-		return nil
-	}); err != nil {
-		return kctrl.Result{}, fmt.Errorf("creating or updating gateway agent: %w", err)
-	}
-
 	// we intentionally manage gateway agent in the default namespace
-	gwAg = &gwintapi.GatewayAgent{ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: gw.Name}}
+	gwAg := &gwintapi.GatewayAgent{ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: gw.Name}}
 	if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, gwAg, func() error {
 		// TODO consider blocking owner deletion, would require foregroundDeletion finalizer on the owner
 		if err := ctrlutil.SetControllerReference(gw, gwAg, r.Scheme(),
