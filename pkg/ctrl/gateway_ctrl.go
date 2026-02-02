@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -241,6 +242,11 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 		peerings[peering.Name] = peering.Spec
 	}
 
+	comms := map[string]string{}
+	for id, comm := range r.cfg.Communities {
+		comms[strconv.FormatUint(uint64(id), 10)] = comm
+	}
+
 	gwAg := &gwintapi.GatewayAgent{ObjectMeta: kmetav1.ObjectMeta{Namespace: gw.Namespace, Name: gw.Name}}
 	if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, gwAg, func() error {
 		// TODO consider blocking owner deletion, would require foregroundDeletion finalizer on the owner
@@ -254,6 +260,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 		gwAg.Spec.VPCs = vpcs
 		gwAg.Spec.Peerings = peerings
 		gwAg.Spec.Groups = gwGroups
+		gwAg.Spec.Communities = comms
 		gwAg.Spec.Config = gwintapi.GatewayAgentSpecConfig{
 			FabricBFD: r.cfg.FabricBFD,
 		}
