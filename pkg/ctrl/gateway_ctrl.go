@@ -195,7 +195,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 				return strings.Compare(a.Name, b.Name)
 			}
 
-			return -1 * cmp.Compare(a.Priority, b.Priority)
+			return cmp.Compare(a.Priority, b.Priority)
 		})
 	}
 
