@@ -5,6 +5,7 @@ package v1alpha1
 
 import (
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -135,7 +136,7 @@ func TestPeeringWithMultipleItemsInAs(t *testing.T) {
 	assert.Error(t, peering.Validate(t.Context(), nil), "multiple selection in the same PeeringEntryAs should be invalid")
 }
 
-func TestPeeringWithStatelessNAT(t *testing.T) {
+func TestPeeringWithStaticNAT(t *testing.T) {
 	common := &Peering{}
 	common.Spec.Peering = map[string]*PeeringEntry{
 		"vpc1": {
@@ -148,7 +149,7 @@ func TestPeeringWithStatelessNAT(t *testing.T) {
 						{CIDR: "192.168.1.0/24"},
 					},
 					NAT: &PeeringNAT{
-						Stateless: &PeeringStatelessNAT{},
+						Static: &PeeringNATStatic{},
 					},
 				},
 			},
@@ -174,7 +175,7 @@ func TestPeeringWithStatelessNAT(t *testing.T) {
 	}
 	ref.Spec.GatewayGroup = DefaultGatewayGroup
 	ref.Spec.Peering["vpc2"].Expose[0].NAT = &PeeringNAT{
-		Stateless: &PeeringStatelessNAT{},
+		Static: &PeeringNATStatic{},
 	}
 
 	peering := common.DeepCopy()
@@ -184,7 +185,7 @@ func TestPeeringWithStatelessNAT(t *testing.T) {
 	assert.Equal(t, ref, peering)
 }
 
-func TestPeeringWithStatefulNAT(t *testing.T) {
+func TestPeeringWithMasqueradeNAT(t *testing.T) {
 	common := &Peering{}
 	common.Spec.Peering = map[string]*PeeringEntry{
 		"vpc1": {
@@ -197,7 +198,7 @@ func TestPeeringWithStatefulNAT(t *testing.T) {
 						{CIDR: "192.168.1.0/24"},
 					},
 					NAT: &PeeringNAT{
-						Stateful: &PeeringStatefulNAT{},
+						Masquerade: &PeeringNATMasquerade{},
 					},
 				},
 			},
@@ -212,7 +213,7 @@ func TestPeeringWithStatefulNAT(t *testing.T) {
 						{CIDR: "192.168.2.0/24"},
 					},
 					NAT: &PeeringNAT{
-						Stateful: &PeeringStatefulNAT{
+						Masquerade: &PeeringNATMasquerade{
 							IdleTimeout: kmetav1.Duration{Duration: time.Duration(3 * time.Minute)},
 						},
 					},
@@ -228,10 +229,60 @@ func TestPeeringWithStatefulNAT(t *testing.T) {
 	}
 	ref.Spec.GatewayGroup = DefaultGatewayGroup
 	ref.Spec.Peering["vpc1"].Expose[0].NAT = &PeeringNAT{
-		Stateful: &PeeringStatefulNAT{
-			IdleTimeout: kmetav1.Duration{Duration: time.Duration(2 * time.Minute)},
+		Masquerade: &PeeringNATMasquerade{
+			IdleTimeout: kmetav1.Duration{Duration: DefaultMasqueradeIdleTimeout},
 		},
 	}
+
+	peering := common.DeepCopy()
+	peering.Default()
+	assert.NoError(t, peering.Validate(t.Context(), nil), "peering should be valid")
+
+	assert.Equal(t, ref, peering)
+}
+
+func TestPeeringWithPortForwardNAT(t *testing.T) {
+	common := &Peering{}
+	common.Spec.Peering = map[string]*PeeringEntry{
+		"vpc1": {
+			Expose: []PeeringEntryExpose{
+				{
+					IPs: []PeeringEntryIP{
+						{CIDR: "10.0.1.0/24"},
+					},
+					As: []PeeringEntryAs{
+						{CIDR: "192.168.1.0/24"},
+					},
+					NAT: &PeeringNAT{
+						PortForward: &PeeringNATPortForward{
+							Ports: []PeeringNATPortForwardEntry{
+								{Protocol: "tcp", Port: "80", As: "8080"},
+								{Protocol: "udp", Port: "90-100", As: "8090-8100"},
+								{Port: "88", As: "8088"},
+							},
+						},
+					},
+				},
+			},
+		},
+		"vpc2": {
+			Expose: []PeeringEntryExpose{
+				{
+					IPs: []PeeringEntryIP{
+						{CIDR: "10.0.2.0/24"},
+					},
+				},
+			},
+		},
+	}
+
+	ref := common.DeepCopy()
+	ref.Labels = map[string]string{
+		ListLabelVPC("vpc1"): "true",
+		ListLabelVPC("vpc2"): "true",
+	}
+	ref.Spec.GatewayGroup = DefaultGatewayGroup
+	ref.Spec.Peering["vpc1"].Expose[0].NAT.PortForward.IdleTimeout.Duration = DefaultPortForwardIdleTimeout
 
 	peering := common.DeepCopy()
 	peering.Default()
@@ -281,7 +332,7 @@ func TestValidateDefaultDestination(t *testing.T) {
 			name: "default with NAT",
 			expose: PeeringEntryExpose{
 				NAT: &PeeringNAT{
-					Stateless: &PeeringStatelessNAT{},
+					Static: &PeeringNATStatic{},
 				},
 				DefaultDestination: true,
 			},
@@ -362,7 +413,7 @@ func generatePeering(name string, f ...func(p *Peering)) *Peering {
 		Spec: PeeringSpec{
 			GatewayGroup: DefaultGatewayGroup,
 			Peering: map[string]*PeeringEntry{
-				"vpc-1": &PeeringEntry{
+				"vpc-1": {
 					Expose: []PeeringEntryExpose{
 						{
 							IPs: []PeeringEntryIP{
@@ -373,7 +424,7 @@ func generatePeering(name string, f ...func(p *Peering)) *Peering {
 						},
 					},
 				},
-				"vpc-2": &PeeringEntry{
+				"vpc-2": {
 					Expose: []PeeringEntryExpose{
 						{
 							IPs: []PeeringEntryIP{
@@ -401,7 +452,7 @@ func TestValidateCIDROverlap(t *testing.T) {
 		Spec: PeeringSpec{
 			GatewayGroup: DefaultGatewayGroup,
 			Peering: map[string]*PeeringEntry{
-				"vpc-1": &PeeringEntry{
+				"vpc-1": {
 					Expose: []PeeringEntryExpose{
 						{
 							IPs: []PeeringEntryIP{
@@ -412,7 +463,7 @@ func TestValidateCIDROverlap(t *testing.T) {
 						},
 					},
 				},
-				"vpc-45": &PeeringEntry{
+				"vpc-45": {
 					Expose: []PeeringEntryExpose{
 						{
 							IPs: []PeeringEntryIP{
@@ -533,22 +584,22 @@ func TestValidateCIDROverlap(t *testing.T) {
 	}
 }
 
-func TestValidatePorts(t *testing.T) {
+func TestValidatePort(t *testing.T) {
 	for _, tt := range []struct {
 		in    string
 		error bool
 	}{
-		{in: "", error: false},
+		{in: "", error: true},
 		{in: "80", error: false},
 		{in: "80-80", error: false},
-		{in: "80,443", error: false},
-		{in: "80,443,3000-3100", error: false},
+		{in: "80,443", error: true},
+		{in: "80,443,3000-3100", error: true},
 		{in: "80,443,3000-3100,", error: true},
-		{in: "80,443,3000-3100,8080", error: false},
-		{in: "  80  ", error: false},
-		{in: "  80  ,  443  ", error: false},
-		{in: "  80  ,  443  ,  3000-3100  ", error: false},
-		{in: "  80  ,443,3000-3100,8080", error: false},
+		{in: "80,443,3000-3100,8080", error: true},
+		{in: "  80  ", error: true},
+		{in: "  80  ,  443  ", error: true},
+		{in: "  80  ,  443  ,  3000-3100  ", error: true},
+		{in: "  80  ,443,3000-3100,8080", error: true},
 		{in: "80-79", error: true},
 		{in: "0", error: true},
 		{in: "65536", error: true},
@@ -560,8 +611,8 @@ func TestValidatePorts(t *testing.T) {
 		{in: "  80  -  ", error: true},
 		{in: "1-80,65536", error: true},
 	} {
-		t.Run(tt.in, func(t *testing.T) {
-			err := validatePorts(tt.in)
+		t.Run("_"+strings.ReplaceAll(tt.in, " ", "_"), func(t *testing.T) {
+			err := validatePort(tt.in)
 			require.Equal(t, tt.error, err != nil)
 		})
 	}

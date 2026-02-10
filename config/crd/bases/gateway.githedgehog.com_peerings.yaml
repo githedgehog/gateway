@@ -72,10 +72,6 @@ spec:
                                   description: CIDR to exclude, only one of cidr,
                                     not can be set
                                   type: string
-                                ports:
-                                  description: Port ranges (e.g. "80, 443, 3000-3100"),
-                                    used together with exactly one of cidr, not
-                                  type: string
                               type: object
                             type: array
                           default:
@@ -91,10 +87,6 @@ spec:
                                   description: CIDR to exclude, only one of cidr,
                                     not, vpcSubnet can be set
                                   type: string
-                                ports:
-                                  description: Port ranges (e.g. "80, 443, 3000-3100"),
-                                    used together with exactly one of cidr, not, vpcSubnet
-                                  type: string
                                 vpcSubnet:
                                   description: CIDR by VPC subnet name to include,
                                     only one of cidr, not, vpcSubnet can be set
@@ -103,9 +95,7 @@ spec:
                             type: array
                           nat:
                             properties:
-                              stateful:
-                                description: Use connection state tracking when performing
-                                  NAT
+                              masquerade:
                                 properties:
                                   idleTimeout:
                                     description: Time since the last packet after
@@ -113,9 +103,30 @@ spec:
                                       state table
                                     type: string
                                 type: object
-                              stateless:
-                                description: Use connection state tracking when performing
-                                  NAT, use stateful NAT if omitted
+                              portForward:
+                                properties:
+                                  idleTimeout:
+                                    description: Time since the last packet after
+                                      which flows are removed from the connection
+                                      state table
+                                    type: string
+                                  ports:
+                                    items:
+                                      properties:
+                                        as:
+                                          type: string
+                                        port:
+                                          type: string
+                                        proto:
+                                          enum:
+                                          - tcp
+                                          - udp
+                                          - ""
+                                          type: string
+                                      type: object
+                                    type: array
+                                type: object
+                              static:
                                 type: object
                             type: object
                         type: object
