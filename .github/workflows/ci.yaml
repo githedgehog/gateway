@@ -195,7 +195,6 @@ jobs:
           - false
         upgradefrom:
           - ""
-          - "25.05"
         include:
           # hlab gateway l2vni
           - fabricmode: spine-leaf
