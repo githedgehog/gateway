@@ -1,6 +1,6 @@
 module go.githedgehog.com/gateway
 
-go 1.25.7
+go 1.26
 
 tool sigs.k8s.io/controller-tools/cmd/controller-gen
 
