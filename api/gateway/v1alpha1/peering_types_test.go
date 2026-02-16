@@ -110,6 +110,9 @@ func TestPeeringWithMultipleItemsInAs(t *testing.T) {
 					As: []PeeringEntryAs{
 						{CIDR: "192.168.1.0/24", Not: "192.168.1.1/32"},
 					},
+					NAT: &PeeringNAT{
+						Static: &PeeringNATStatic{},
+					},
 				},
 			},
 		},
@@ -163,6 +166,9 @@ func TestPeeringWithStaticNAT(t *testing.T) {
 					As: []PeeringEntryAs{
 						{CIDR: "192.168.2.0/24"},
 					},
+					NAT: &PeeringNAT{
+						Static: &PeeringNATStatic{},
+					},
 				},
 			},
 		},
@@ -174,9 +180,6 @@ func TestPeeringWithStaticNAT(t *testing.T) {
 		ListLabelVPC("vpc2"): "true",
 	}
 	ref.Spec.GatewayGroup = DefaultGatewayGroup
-	ref.Spec.Peering["vpc2"].Expose[0].NAT = &PeeringNAT{
-		Static: &PeeringNATStatic{},
-	}
 
 	peering := common.DeepCopy()
 	peering.Default()
@@ -526,6 +529,9 @@ func TestValidateCIDROverlap(t *testing.T) {
 								CIDR: "10.0.45.0/25",
 							},
 						},
+						NAT: &PeeringNAT{
+							Static: &PeeringNATStatic{},
+						},
 					},
 				}
 			}),
@@ -547,10 +553,34 @@ func TestValidateCIDROverlap(t *testing.T) {
 								CIDR: "10.0.3.0/25",
 							},
 						},
+						NAT: &PeeringNAT{
+							Static: &PeeringNATStatic{},
+						},
 					},
 				}
 			}),
 			objs: baseObjs,
+		},
+		{
+			name: "missing NAT spec with non-empty AS",
+			peering: generatePeering("missing-nat-spec", func(p *Peering) {
+				p.Spec.Peering["vpc-2"].Expose = []PeeringEntryExpose{
+					{
+						IPs: []PeeringEntryIP{
+							{
+								CIDR: "10.0.2.0/25",
+							},
+						},
+						As: []PeeringEntryAs{
+							{
+								CIDR: "10.0.3.0/25",
+							},
+						},
+					},
+				}
+			}),
+			objs: baseObjs,
+			err:  true,
 		},
 		{
 			name: "default does not clash",
