@@ -18,7 +18,7 @@ import (
 
 func withName[T kclient.Object](name string, obj T) T {
 	obj.SetName(name)
-	obj.SetNamespace(kmetav1.NamespaceAll)
+	obj.SetNamespace(kmetav1.NamespaceDefault)
 
 	return obj
 }
