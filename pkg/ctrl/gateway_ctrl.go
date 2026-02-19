@@ -118,8 +118,8 @@ func (r *GatewayReconciler) enqueueAllGateways(ctx context.Context, obj kclient.
 func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx)
 
-	if req.Namespace != r.cfg.Namespace {
-		l.Info("Skipping Gateway in unexpected namespace")
+	if req.Namespace != kmetav1.NamespaceDefault {
+		l.Info("Skipping Gateway in non-default namespace")
 
 		return kctrl.Result{}, nil
 	}
@@ -247,32 +247,6 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 		comms[strconv.FormatUint(uint64(id), 10)] = comm
 	}
 
-	// TODO remove it after dataplane is switched over to the default namespace
-	{
-		gwAg := &gwintapi.GatewayAgent{ObjectMeta: kmetav1.ObjectMeta{Namespace: gw.Namespace, Name: gw.Name}}
-		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, gwAg, func() error {
-			// TODO consider blocking owner deletion, would require foregroundDeletion finalizer on the owner
-			if err := ctrlutil.SetControllerReference(gw, gwAg, r.Scheme(),
-				ctrlutil.WithBlockOwnerDeletion(false)); err != nil {
-				return fmt.Errorf("setting controller reference: %w", err)
-			}
-
-			gwAg.Spec.AgentVersion = ""
-			gwAg.Spec.Gateway = gw.Spec
-			gwAg.Spec.VPCs = vpcs
-			gwAg.Spec.Peerings = peerings
-			gwAg.Spec.Groups = gwGroups
-			gwAg.Spec.Communities = comms
-			gwAg.Spec.Config = gwintapi.GatewayAgentSpecConfig{
-				FabricBFD: r.cfg.FabricBFD,
-			}
-
-			return nil
-		}); err != nil {
-			return kctrl.Result{}, fmt.Errorf("creating or updating gateway agent: %w", err)
-		}
-	}
-
 	// we intentionally manage gateway agent in the default namespace
 	{
 		gwAg := &gwintapi.GatewayAgent{ObjectMeta: kmetav1.ObjectMeta{Namespace: kmetav1.NamespaceDefault, Name: gw.Name}}
@@ -295,12 +269,6 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 		}
 	}
 
-	// TODO enable it after dataplane is switched over to the default namespace
-	// gwAg = &gwintapi.GatewayAgent{ObjectMeta: kmetav1.ObjectMeta{Namespace: gw.Namespace, Name: gw.Name}}
-	// if err := r.Delete(ctx, gwAg); err != nil && !kapierrors.IsNotFound(err) {
-	// 	return kctrl.Result{}, fmt.Errorf("deleting non-default ns gateway agent: %w", err)
-	// }
-
 	if err := r.deployGateway(ctx, gw); err != nil {
 		return kctrl.Result{}, fmt.Errorf("deploying gateway: %w", err)
 	}
@@ -321,42 +289,11 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 
 	{
 		sa := &corev1.ServiceAccount{ObjectMeta: kmetav1.ObjectMeta{
-			Namespace: gw.Namespace,
+			Namespace: r.cfg.Namespace,
 			Name:      saName,
 		}}
 		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, sa, func() error { return nil }); err != nil {
 			return fmt.Errorf("creating service account: %w", err)
-		}
-
-		// TODO remove it after dataplane is switched over to the default namespace
-		fabNsRole := &rbacv1.Role{ObjectMeta: kmetav1.ObjectMeta{
-			Namespace: gw.Namespace,
-			Name:      saName,
-		}}
-		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, fabNsRole, func() error {
-			if err := ctrlutil.SetControllerReference(gw, fabNsRole, r.Scheme(),
-				ctrlutil.WithBlockOwnerDeletion(false)); err != nil {
-				return fmt.Errorf("setting controller reference: %w", err)
-			}
-
-			fabNsRole.Rules = []rbacv1.PolicyRule{
-				{
-					APIGroups:     []string{gwintapi.GroupVersion.Group},
-					Resources:     []string{"gatewayagents"},
-					ResourceNames: []string{gw.Name},
-					Verbs:         []string{"get", "watch"},
-				},
-				{
-					APIGroups:     []string{gwintapi.GroupVersion.Group},
-					Resources:     []string{"gatewayagents/status"},
-					ResourceNames: []string{gw.Name},
-					Verbs:         []string{"get", "update", "patch"},
-				},
-			}
-
-			return nil
-		}); err != nil {
-			return fmt.Errorf("creating fab ns role: %w", err)
 		}
 
 		role := &rbacv1.Role{ObjectMeta: kmetav1.ObjectMeta{
@@ -384,35 +321,6 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 			return fmt.Errorf("creating role: %w", err)
 		}
 
-		// TODO remove it after dataplane is switched over to the default namespace
-		fabNsRoleBinding := &rbacv1.RoleBinding{ObjectMeta: kmetav1.ObjectMeta{
-			Namespace: gw.Namespace,
-			Name:      saName,
-		}}
-		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, fabNsRoleBinding, func() error {
-			if err := ctrlutil.SetControllerReference(gw, fabNsRoleBinding, r.Scheme(),
-				ctrlutil.WithBlockOwnerDeletion(false)); err != nil {
-				return fmt.Errorf("setting controller reference: %w", err)
-			}
-
-			fabNsRoleBinding.Subjects = []rbacv1.Subject{
-				{
-					Kind:      "ServiceAccount",
-					Name:      sa.Name,
-					Namespace: sa.Namespace,
-				},
-			}
-			fabNsRoleBinding.RoleRef = rbacv1.RoleRef{
-				APIGroup: rbacv1.GroupName,
-				Kind:     "Role",
-				Name:     fabNsRole.Name,
-			}
-
-			return nil
-		}); err != nil {
-			return fmt.Errorf("creating fab ns role binding: %w", err)
-		}
-
 		roleBinding := &rbacv1.RoleBinding{ObjectMeta: kmetav1.ObjectMeta{
 			Namespace: kmetav1.NamespaceDefault,
 			Name:      saName,
@@ -435,14 +343,6 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 		}); err != nil {
 			return fmt.Errorf("creating role binding: %w", err)
 		}
-
-		// TODO enable it after dataplane is switched over to the default namespace
-		// if err := r.Delete(ctx, fabNsRoleBinding); err != nil && !kapierrors.IsNotFound(err) {
-		// 	return fmt.Errorf("deleting non-default ns role binding: %w", err)
-		// }
-		// if err := r.Delete(ctx, fabNsRole); err != nil && !kapierrors.IsNotFound(err) {
-		// 	return fmt.Errorf("deleting non-default ns role: %w", err)
-		// }
 	}
 
 	replaceUpdateStrategy := appv1.DaemonSetUpdateStrategy{
@@ -461,23 +361,6 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 				Type: ptr.To(corev1.HostPathDirectoryOrCreate),
 			},
 		},
-	}
-
-	agCM := &corev1.ConfigMap{ObjectMeta: kmetav1.ObjectMeta{
-		Namespace: gw.Namespace,
-		Name:      entityName(gw.Name, "agent"),
-	}}
-	agDS := &appv1.DaemonSet{ObjectMeta: kmetav1.ObjectMeta{
-		Namespace: gw.Namespace,
-		Name:      entityName(gw.Name, "agent"),
-	}}
-
-	if err := r.Client.Delete(ctx, agCM); err != nil && !kapierrors.IsNotFound(err) {
-		return fmt.Errorf("deleting gateway agent configmap: %w", err)
-	}
-
-	if err := r.Client.Delete(ctx, agDS); err != nil && !kapierrors.IsNotFound(err) {
-		return fmt.Errorf("deleting gateway agent daemonset: %w", err)
 	}
 
 	frrSocketVolume := corev1.Volume{
@@ -561,7 +444,7 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 		}
 
 		dpDS := &appv1.DaemonSet{ObjectMeta: kmetav1.ObjectMeta{
-			Namespace: gw.Namespace,
+			Namespace: r.cfg.Namespace,
 			Name:      entityName(gw.Name, "dataplane"),
 		}}
 		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, dpDS, func() error {
@@ -661,7 +544,7 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 
 	{
 		frrDS := &appv1.DaemonSet{ObjectMeta: kmetav1.ObjectMeta{
-			Namespace: gw.Namespace,
+			Namespace: r.cfg.Namespace,
 			Name:      entityName(gw.Name, "frr"),
 		}}
 		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, frrDS, func() error {
