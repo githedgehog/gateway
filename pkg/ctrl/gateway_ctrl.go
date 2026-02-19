@@ -448,11 +448,6 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 			Name:      entityName(gw.Name, "dataplane"),
 		}}
 		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, dpDS, func() error {
-			if err := ctrlutil.SetControllerReference(gw, dpDS, r.Scheme(),
-				ctrlutil.WithBlockOwnerDeletion(false)); err != nil {
-				return fmt.Errorf("setting controller reference: %w", err)
-			}
-
 			labels := map[string]string{
 				"app.kubernetes.io/name": dpDS.Name, // TODO
 			}
@@ -548,11 +543,6 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 			Name:      entityName(gw.Name, "frr"),
 		}}
 		if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, frrDS, func() error {
-			if err := ctrlutil.SetControllerReference(gw, frrDS, r.Scheme(),
-				ctrlutil.WithBlockOwnerDeletion(false)); err != nil {
-				return fmt.Errorf("setting controller reference: %w", err)
-			}
-
 			labels := map[string]string{
 				"app.kubernetes.io/name": frrDS.Name, // TODO
 			}
