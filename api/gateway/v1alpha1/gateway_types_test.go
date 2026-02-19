@@ -18,7 +18,7 @@ import (
 
 func withName[T kclient.Object](name string, obj T) T {
 	obj.SetName(name)
-	obj.SetNamespace("fab") // FIXME: do not hardcode
+	obj.SetNamespace(kmetav1.NamespaceAll)
 
 	return obj
 }
