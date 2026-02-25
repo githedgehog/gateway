@@ -163,7 +163,7 @@ jobs:
             matrix.upgradefrom == '' || contains(github.event.pull_request.labels.*.name, 'ci:-upgrade')
           )
         }}
-      fabricatorref: master
+      fabricatorref: ema/gw-validate-signature
       prebuild: "just bump gateway ${{ needs.test-build.outputs.version }} ${{ needs.test-build.outputs.ref }}"
       fabricmode: ${{ matrix.fabricmode }}
       mesh: ${{ matrix.mesh }}
