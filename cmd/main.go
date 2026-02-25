@@ -143,7 +143,7 @@ func run() error {
 	}
 
 	// Webhooks
-	if err := ctrl.SetupGatewayWebhookWith(mgr); err != nil {
+	if err := ctrl.SetupGatewayWebhookWith(mgr, cfg); err != nil {
 		return fmt.Errorf("setting up gateway webhook: %w", err)
 	}
 	if err := ctrl.SetupGatewayGroupWebhookWith(mgr); err != nil {

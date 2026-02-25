@@ -12,6 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	gwapi "go.githedgehog.com/gateway/api/gateway/v1alpha1"
+	"go.githedgehog.com/gateway/api/meta"
 )
 
 // +kubebuilder:webhook:path=/mutate-gateway-githedgehog-com-v1alpha1-gateway,mutating=true,failurePolicy=fail,sideEffects=None,groups=gateway.githedgehog.com,resources=gateways,verbs=create;update;delete,versions=v1alpha1,name=mgateway.kb.io,admissionReviewVersions=v1
@@ -19,11 +20,13 @@ import (
 
 type GatewayWebhook struct {
 	kclient.Reader
+	Cfg *meta.GatewayCtrlConfig
 }
 
-func SetupGatewayWebhookWith(mgr kctrl.Manager) error {
+func SetupGatewayWebhookWith(mgr kctrl.Manager, cfg *meta.GatewayCtrlConfig) error {
 	w := &GatewayWebhook{
 		Reader: mgr.GetClient(),
+		Cfg:    cfg,
 	}
 
 	if err := kctrl.NewWebhookManagedBy(mgr, &gwapi.Gateway{}).
@@ -43,12 +46,12 @@ func (w *GatewayWebhook) Default(_ context.Context, obj *gwapi.Gateway) error {
 }
 
 func (w *GatewayWebhook) ValidateCreate(ctx context.Context, gw *gwapi.Gateway) (admission.Warnings, error) {
-	return nil, gw.Validate(ctx, w.Reader) //nolint:wrapcheck
+	return nil, gw.Validate(ctx, w.Reader, w.Cfg) //nolint:wrapcheck
 }
 
 func (w *GatewayWebhook) ValidateUpdate(ctx context.Context, _ *gwapi.Gateway, newGw *gwapi.Gateway) (admission.Warnings, error) {
 	// TODO validate diff between oldObj and newObj if needed
-	return nil, newGw.Validate(ctx, w.Reader) //nolint:wrapcheck
+	return nil, newGw.Validate(ctx, w.Reader, w.Cfg) //nolint:wrapcheck
 }
 
 func (w *GatewayWebhook) ValidateDelete(_ context.Context, _ *gwapi.Gateway) (admission.Warnings, error) {

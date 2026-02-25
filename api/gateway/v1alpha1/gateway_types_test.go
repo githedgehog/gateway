@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.githedgehog.com/gateway/api/gateway/v1alpha1"
+	"go.githedgehog.com/gateway/api/meta"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -212,10 +213,50 @@ func TestGatewayValidate(t *testing.T) {
 			objs: base,
 			err:  v1alpha1.ErrInvalidGW,
 		},
+		{
+			name: "test-too-many-gws-in-group",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Groups = []v1alpha1.GatewayGroupMembership{{Name: "gr1", Priority: 0}}
+			}),
+			objs: withObjs(base,
+				withName("gr1", &v1alpha1.GatewayGroup{}),
+				withName("gw-3", &v1alpha1.Gateway{
+					Spec: v1alpha1.GatewaySpec{
+						Groups: []v1alpha1.GatewayGroupMembership{{Name: "gr1", Priority: 1}},
+					},
+				}),
+				withName("gw-4", &v1alpha1.Gateway{
+					Spec: v1alpha1.GatewaySpec{
+						Groups: []v1alpha1.GatewayGroupMembership{{Name: "gr1", Priority: 2}},
+					},
+				}),
+			),
+			err: v1alpha1.ErrInvalidGW,
+		},
+		{
+			name: "test-fits-in-gw-group",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Groups = []v1alpha1.GatewayGroupMembership{{Name: "gr1", Priority: 0}}
+			}),
+			objs: withObjs(base,
+				withName("gr1", &v1alpha1.GatewayGroup{}),
+				withName("gw-3", &v1alpha1.Gateway{
+					Spec: v1alpha1.GatewaySpec{
+						Groups: []v1alpha1.GatewayGroupMembership{{Name: "gr1", Priority: 1}},
+					},
+				}),
+			),
+		},
 	}
 
 	scheme := runtime.NewScheme()
 	require.NoError(t, v1alpha1.AddToScheme(scheme), "should add gateway API to scheme")
+	cfg := &meta.GatewayCtrlConfig{
+		Communities: map[uint32]string{
+			0: "50000:1000",
+			1: "50000:1001",
+		},
+	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -227,7 +268,7 @@ func TestGatewayValidate(t *testing.T) {
 				Build()
 
 			tt.gw.Default()
-			actual := tt.gw.Validate(ctx, kube)
+			actual := tt.gw.Validate(ctx, kube, cfg)
 			assert.ErrorIs(t, actual, tt.err, "validate should return expected error")
 		})
 	}
