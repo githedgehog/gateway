@@ -188,7 +188,7 @@ func TestPeeringWithStaticNAT(t *testing.T) {
 	assert.Equal(t, ref, peering)
 }
 
-func TestPeeringWithMasqueradeNAT(t *testing.T) {
+func TestPeeringWithDoubleMasqueradeNAT(t *testing.T) {
 	common := &Peering{}
 	common.Spec.Peering = map[string]*PeeringEntry{
 		"vpc1": {
@@ -239,8 +239,56 @@ func TestPeeringWithMasqueradeNAT(t *testing.T) {
 
 	peering := common.DeepCopy()
 	peering.Default()
-	assert.NoError(t, peering.Validate(t.Context(), nil), "peering should be valid")
+	assert.Error(t, peering.Validate(t.Context(), nil), "masquerade on both sides should not be allowed")
+	assert.Equal(t, ref, peering)
+}
 
+func TestPeeringWithMasqueradeAndStaticNAT(t *testing.T) {
+	common := &Peering{}
+	common.Spec.Peering = map[string]*PeeringEntry{
+		"vpc1": {
+			Expose: []PeeringEntryExpose{
+				{
+					IPs: []PeeringEntryIP{
+						{CIDR: "10.0.1.0/24"},
+					},
+					As: []PeeringEntryAs{
+						{CIDR: "192.168.1.0/24"},
+					},
+					NAT: &PeeringNAT{
+						Static: &PeeringNATStatic{},
+					},
+				},
+			},
+		},
+		"vpc2": {
+			Expose: []PeeringEntryExpose{
+				{
+					IPs: []PeeringEntryIP{
+						{CIDR: "10.0.2.0/24"},
+					},
+					As: []PeeringEntryAs{
+						{CIDR: "192.168.2.0/24"},
+					},
+					NAT: &PeeringNAT{
+						Masquerade: &PeeringNATMasquerade{
+							IdleTimeout: kmetav1.Duration{Duration: time.Duration(3 * time.Minute)},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ref := common.DeepCopy()
+	ref.Labels = map[string]string{
+		ListLabelVPC("vpc1"): "true",
+		ListLabelVPC("vpc2"): "true",
+	}
+	ref.Spec.GatewayGroup = DefaultGatewayGroup
+	peering := common.DeepCopy()
+	peering.Default()
+	assert.Error(t, peering.Validate(t.Context(), nil), "masquerade plus static should not be allowed")
 	assert.Equal(t, ref, peering)
 }
 
@@ -291,6 +339,123 @@ func TestPeeringWithPortForwardNAT(t *testing.T) {
 	peering.Default()
 	assert.NoError(t, peering.Validate(t.Context(), nil), "peering should be valid")
 
+	assert.Equal(t, ref, peering)
+}
+
+func TestPeeringWithPortForwardAndMasqueradeSameSideNAT(t *testing.T) {
+	common := &Peering{}
+	common.Spec.Peering = map[string]*PeeringEntry{
+		"vpc1": {
+			Expose: []PeeringEntryExpose{
+				{
+					IPs: []PeeringEntryIP{
+						{CIDR: "10.0.1.0/24"},
+					},
+					As: []PeeringEntryAs{
+						{CIDR: "192.168.1.0/24"},
+					},
+					NAT: &PeeringNAT{
+						PortForward: &PeeringNATPortForward{
+							Ports: []PeeringNATPortForwardEntry{
+								{Protocol: "tcp", Port: "80", As: "8080"},
+								{Protocol: "udp", Port: "90-100", As: "8090-8100"},
+								{Port: "88", As: "8088"},
+							},
+							IdleTimeout: kmetav1.Duration{Duration: DefaultPortForwardIdleTimeout},
+						},
+					},
+				},
+				{
+					IPs: []PeeringEntryIP{
+						{CIDR: "10.0.2.0/24"},
+					},
+					As: []PeeringEntryAs{
+						{CIDR: "192.168.2.0/24"},
+					},
+					NAT: &PeeringNAT{
+						Masquerade: &PeeringNATMasquerade{
+							IdleTimeout: kmetav1.Duration{Duration: time.Duration(3 * time.Minute)},
+						},
+					},
+				},
+			},
+		},
+		"vpc2": {
+			Expose: []PeeringEntryExpose{
+				{
+					IPs: []PeeringEntryIP{
+						{CIDR: "10.0.3.0/24"},
+					},
+				},
+			},
+		},
+	}
+
+	ref := common.DeepCopy()
+	ref.Labels = map[string]string{
+		ListLabelVPC("vpc1"): "true",
+		ListLabelVPC("vpc2"): "true",
+	}
+	ref.Spec.GatewayGroup = DefaultGatewayGroup
+	peering := common.DeepCopy()
+	peering.Default()
+	assert.NoError(t, peering.Validate(t.Context(), nil), "peering should be valid")
+	assert.Equal(t, ref, peering)
+}
+
+func TestPeeringWithPortForwardAndMasqueradeNAT(t *testing.T) {
+	common := &Peering{}
+	common.Spec.Peering = map[string]*PeeringEntry{
+		"vpc1": {
+			Expose: []PeeringEntryExpose{
+				{
+					IPs: []PeeringEntryIP{
+						{CIDR: "10.0.1.0/24"},
+					},
+					As: []PeeringEntryAs{
+						{CIDR: "192.168.1.0/24"},
+					},
+					NAT: &PeeringNAT{
+						PortForward: &PeeringNATPortForward{
+							Ports: []PeeringNATPortForwardEntry{
+								{Protocol: "tcp", Port: "80", As: "8080"},
+								{Protocol: "udp", Port: "90-100", As: "8090-8100"},
+								{Port: "88", As: "8088"},
+							},
+							IdleTimeout: kmetav1.Duration{Duration: DefaultPortForwardIdleTimeout},
+						},
+					},
+				},
+			},
+		},
+		"vpc2": {
+			Expose: []PeeringEntryExpose{
+				{
+					IPs: []PeeringEntryIP{
+						{CIDR: "10.0.2.0/24"},
+					},
+					As: []PeeringEntryAs{
+						{CIDR: "192.168.2.0/24"},
+					},
+					NAT: &PeeringNAT{
+						Masquerade: &PeeringNATMasquerade{
+							IdleTimeout: kmetav1.Duration{Duration: time.Duration(3 * time.Minute)},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ref := common.DeepCopy()
+	ref.Labels = map[string]string{
+		ListLabelVPC("vpc1"): "true",
+		ListLabelVPC("vpc2"): "true",
+	}
+	ref.Spec.GatewayGroup = DefaultGatewayGroup
+	peering := common.DeepCopy()
+	peering.Default()
+	assert.Error(t, peering.Validate(t.Context(), nil), "masquerade + portForward should not be allowed")
 	assert.Equal(t, ref, peering)
 }
 
